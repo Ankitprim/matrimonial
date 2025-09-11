@@ -99,6 +99,182 @@ class query extends Database{
         return $stmt;
     }
 
+    public function getMatches($userId, $limit = 50, $offset = 0, $debug = false) {
+    $sql = "
+    SELECT DISTINCT 
+        p.profile_id,
+        u.user_id,
+        u.full_name,
+        u.age,
+        u.dob,
+        u.gender,
+        p.height,
+        p.religion,
+        p.caste,
+        p.motherTongue,
+        p.education,
+        p.profession,
+        p.location,
+        p.aboutMe,
+        p.image,
+        p.lookingFor
+    FROM profiles p
+    JOIN users u ON p.user_id = u.user_id
+    LEFT JOIN preferences pref ON pref.user_id = :user_id
+    WHERE 
+        p.user_id != :user_id
+
+        /* Age range */
+        AND (
+            pref.ageRange IS NULL OR TRIM(pref.ageRange) = '' OR LOWER(pref.ageRange) = 'n/a'
+            OR (
+                (COALESCE(NULLIF(u.age,0), TIMESTAMPDIFF(YEAR,u.dob,CURDATE())))
+                BETWEEN 
+                   CAST(SUBSTRING_INDEX(pref.ageRange,'-',1) AS UNSIGNED)
+                   AND CAST(SUBSTRING_INDEX(pref.ageRange,'-',-1) AS UNSIGNED)
+            )
+        )
+
+        /* Height range */
+        AND (
+            pref.heightRange IS NULL OR TRIM(pref.heightRange) = '' OR LOWER(pref.heightRange) = 'n/a'
+            OR (
+               CAST(p.height AS DECIMAL(8,2))
+               BETWEEN CAST(SUBSTRING_INDEX(pref.heightRange,'-',1) AS DECIMAL(8,2))
+                       AND CAST(SUBSTRING_INDEX(pref.heightRange,'-',-1) AS DECIMAL(8,2))
+            )
+        )
+
+        /* Religion (RELAXED with LIKE)
+        AND (
+            pref.religionPrefer IS NULL OR TRIM(pref.religionPrefer) = '' OR LOWER(pref.religionPrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.religionPrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.religion) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        )*/
+
+        /* Caste (RELAXED with LIKE) 
+        AND (
+            pref.castePrefer IS NULL OR TRIM(pref.castePrefer) = '' OR LOWER(pref.castePrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.castePrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.caste) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        ) */
+
+        /* Gender (strict) */
+        AND (
+            pref.genderPrefer IS NULL OR TRIM(pref.genderPrefer) = '' OR LOWER(pref.genderPrefer) = 'n/a'
+            OR FIND_IN_SET(u.gender, pref.genderPrefer) > 0
+        )
+
+        /* Mother Tongue (RELAXED with LIKE)
+        AND (
+            pref.motherTonguePrefer IS NULL OR TRIM(pref.motherTonguePrefer) = '' OR LOWER(pref.motherTonguePrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.motherTonguePrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.motherTongue) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        ) */
+
+        /* Education (RELAXED with LIKE) 
+        AND (
+            pref.educationPrefer IS NULL OR TRIM(pref.educationPrefer) = '' OR LOWER(pref.educationPrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.educationPrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.education) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        ) */
+
+        /* Profession (RELAXED with LIKE) 
+        AND (
+            pref.professionPrefer IS NULL OR TRIM(pref.professionPrefer) = '' OR LOWER(pref.professionPrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.professionPrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.profession) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        ) */
+
+        /* Location (RELAXED with LIKE) 
+        AND (
+            pref.locationPrefer IS NULL OR TRIM(pref.locationPrefer) = '' OR LOWER(pref.locationPrefer) = 'n/a'
+            OR EXISTS (
+                SELECT 1 FROM (
+                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.locationPrefer, ',', numbers.n), ',', -1)) AS val
+                    FROM (
+                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
+                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
+                    ) numbers
+                ) AS opts
+                WHERE opts.val <> '' 
+                AND LOWER(p.location) LIKE CONCAT('%', LOWER(opts.val), '%')
+            )
+        )*/
+
+    ORDER BY u.full_name
+    LIMIT :limit OFFSET :offset
+    ";
+
+    $stmt = $this->connect()->prepare($sql);
+    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+    // if ($debug) {
+    //     echo "<pre>";
+    //     echo "SQL:\n" . $sql . "\n\n";
+    //     echo "Params:\n";
+    //     var_dump([
+    //         ':user_id' => $userId,
+    //         ':limit'   => $limit,
+    //         ':offset'  => $offset
+    //     ]);
+    //     echo "</pre>";
+    // }
+
+    $stmt->execute();
+    return $stmt;
+}
+
+
+
+
    
 
    
