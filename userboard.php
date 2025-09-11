@@ -1,61 +1,64 @@
 <?php
 
-    include('config/database.php');
-    define('APPURL', 'http://localhost/metromonial/');
-    session_start();
-    $err = '';
-    if (!isset($_SESSION['user_id'])) {
-        header("Location:auth/login.php");
-        exit();
-    }
-    if (isset($_SESSION["msg"])) {
-        echo "<script>alert('{$_SESSION['msg']}'); </script>";
-        unset($_SESSION["msg"]);
-    }
-    $user_id = $_SESSION["user_id"];
-    $user_name = $_SESSION["user_name"];
+include('config/database.php');
+define('APPURL', 'http://localhost/metromonial/');
+session_start();
+$err = '';
+if (!isset($_SESSION['user_id'])) {
+    header("Location:auth/login.php");
+    exit();
+}
+if (isset($_SESSION["msg"])) {
+    echo "<script>alert('{$_SESSION['msg']}'); </script>";
+    unset($_SESSION["msg"]);
+}
+$user_id = $_SESSION["user_id"];
+$user_name = $_SESSION["user_name"];
 
-    $obj = new query;
-    $conditionArr = array("user_id" => $user_id, "full_name" => $user_name);
-    $stmt = $obj->getData("users", "*", $conditionArr);
-    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $eamil = $data[0]['email'];
-    $phone = $data[0]['phone'];
-    $age = $data[0]['age'];
-    $dob = $data[0]['dob'];
-    $gender = $data[0]['gender'];
+$obj = new query;
+$conditionArr = array("user_id" => $user_id, "full_name" => $user_name);
+$stmt = $obj->getData("users", "*", $conditionArr);
+$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$eamil = $data[0]['email'];
+$phone = $data[0]['phone'];
+$age = $data[0]['age'];
+$dob = $data[0]['dob'];
+$gender = $data[0]['gender'];
 
-    // from profiles table
-    $conditionArr = array("user_id" => $user_id);
-    $query = $obj->getData("profiles", "*", $conditionArr);
-    $data = $query->fetchAll(PDO::FETCH_ASSOC);
+// from profiles table
+$conditionArr = array("user_id" => $user_id);
+$query = $obj->getData("profiles", "*", $conditionArr);
+$data = $query->fetchAll(PDO::FETCH_ASSOC);
 
-    $image = $data[0]['image'];
-    $height = $data[0]['height'];
-    $motherTongue = $data[0]['motherTongue'];
-    $religion = $data[0]['religion'];
-    $cast = $data[0]['caste'];
-    $location = $data[0]['location'];
-    $education = $data[0]['education'];
-    $profession = $data[0]['profession'];
-    $about = $data[0]['aboutMe'];
-    $looknigFor = $data[0]['lookingFor'];
+$image = $data[0]['image'];
+$height = $data[0]['height'];
+$motherTongue = $data[0]['motherTongue'];
+$religion = $data[0]['religion'];
+$cast = $data[0]['caste'];
+$location = $data[0]['location'];
+$education = $data[0]['education'];
+$profession = $data[0]['profession'];
+$about = $data[0]['aboutMe'];
+$looknigFor = $data[0]['lookingFor'];
 
 
-    // from prefrences table
-    $query = $obj->getData('preferences', '*', $conditionArr);
-    $data = $query->fetchAll(PDO::FETCH_ASSOC);
-    $ageRange = $data[0]['ageRange'];
-    $heightRange = $data[0]['heightRange'];
-    $religionPrefer = $data[0]['religionPrefer'];
-    $castePrefer = $data[0]['castePrefer'];
-    $incomePrefer = $data[0]['incomePrefer'];
-    $genderPrefer = $data[0]['genderPrefer'];
-    $motherTonguePrefer = $data[0]['motherTonguePrefer'];
-    $educationPrefer = $data[0]['educationPrefer'];
-    $professionPrefer = $data[0]['professionPrefer'];
-    $locationPrefer = $data[0]['locationPrefer'];
+// from prefrences table
+$query = $obj->getData('preferences', '*', $conditionArr);
+$data = $query->fetchAll(PDO::FETCH_ASSOC);
+$ageRange = $data[0]['ageRange'];
+$heightRange = $data[0]['heightRange'];
+$religionPrefer = $data[0]['religionPrefer'];
+$castePrefer = $data[0]['castePrefer'];
+$incomePrefer = $data[0]['incomePrefer'];
+$genderPrefer = $data[0]['genderPrefer'];
+$motherTonguePrefer = $data[0]['motherTonguePrefer'];
+$educationPrefer = $data[0]['educationPrefer'];
+$professionPrefer = $data[0]['professionPrefer'];
+$locationPrefer = $data[0]['locationPrefer'];
 
+// match card
+$stmt = $obj->getMatches($user_id, 50, 0, true);
+$match = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -753,7 +756,7 @@
                 <div class="content-section active" id="dashboard">
                     <div class="section-header">
                         <h2>Dashboard</h2>
-                        <p>Welcome back, <?php echo $user_name;?>! Here's your activity summary.</p>
+                        <p>Welcome back, <?php echo $user_name; ?>! Here's your activity summary.</p>
                     </div>
 
                     <div class="stats-grid">
@@ -1081,50 +1084,23 @@
                     </div>
 
                     <div class="matches-grid">
-                        <div class="match-card">
+                        <?php foreach($match as $result): ?>
+                        <div class="match-card" data-user="michael">
                             <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
                                 alt="Match" class="match-img">
                             <div class="match-info">
-                                <h3>Michael Chen</h3>
-                                <p>32 years • Software Engineer</p>
-                                <p>New York, USA</p>
+                                <h3><?php echo$result['full_name'] ; ?></h3>
+                                <p><?php echo$result['age'] ; ?> years • <?php echo$result['profession'] ; ?></p>
+                                <p><?php echo$result['location'] ; ?></p>
                                 <div class="match-actions">
-                                    <button class="btn btn-primary">Message</button>
-                                    <button class="btn" style="background-color: var(--light-gray);">View
-                                        Profile</button>
+                                    <button class="btn btn-primary message-btn">Message</button>
+                                    <button class="btn view-profile-btn"
+                                        style="background-color: var(--light-gray);">View Profile</button>
                                 </div>
                             </div>
                         </div>
+                        <?php endforeach; ?>
 
-                        <div class="match-card">
-                            <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
-                                alt="Match" class="match-img">
-                            <div class="match-info">
-                                <h3>David Kim</h3>
-                                <p>35 years • Financial Analyst</p>
-                                <p>Chicago, USA</p>
-                                <div class="match-actions">
-                                    <button class="btn btn-primary">Message</button>
-                                    <button class="btn" style="background-color: var(--light-gray);">View
-                                        Profile</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="match-card">
-                            <img src="https://images.unsplash.com/photo-1552058544-f2b08422138a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
-                                alt="Match" class="match-img">
-                            <div class="match-info">
-                                <h3>Sophia Rodriguez</h3>
-                                <p>31 years • Graphic Designer</p>
-                                <p>Los Angeles, USA</p>
-                                <div class="match-actions">
-                                    <button class="btn btn-primary">Message</button>
-                                    <button class="btn" style="background-color: var(--light-gray);">View
-                                        Profile</button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
