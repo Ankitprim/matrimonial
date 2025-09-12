@@ -177,17 +177,17 @@ class query extends Database
                 OR LOWER(p.motherTongue) REGEXP REPLACE(LOWER(pref.motherTonguePrefer), ',', '|')
             )
 
-            /* Education (RELAXED with REGEXP) */
+            /* Education (RELAXED with REGEXP) 
             AND (
                 pref.educationPrefer IS NULL OR TRIM(pref.educationPrefer) = '' OR LOWER(pref.educationPrefer) = 'n/a'
                 OR LOWER(p.education) REGEXP REPLACE(LOWER(pref.educationPrefer), ',', '|')
-            )
+            )*/
 
-            /* Profession (RELAXED with REGEXP) */
+            /* Profession (RELAXED with REGEXP) 
             AND (
                 pref.professionPrefer IS NULL OR TRIM(pref.professionPrefer) = '' OR LOWER(pref.professionPrefer) = 'n/a'
                 OR LOWER(p.profession) REGEXP REPLACE(LOWER(pref.professionPrefer), ',', '|')
-            )
+            )*/
 
             /* Location (RELAXED with REGEXP) */
             AND (
@@ -219,7 +219,74 @@ class query extends Database
         $stmt->execute();
         return $stmt;
     }
+    public function getUserConversations($user_id)
+    {
+        $sql = "SELECT 
+                u.user_id,
+                u.full_name,
+                p.image,
+                m.message,
+                m.created_at
+            FROM messages m
+            JOIN users u 
+                ON u.user_id = CASE 
+                    WHEN m.sender_id = :user_id THEN m.receiver_id
+                    ELSE m.sender_id
+                END
+            JOIN profiles p 
+                ON u.user_id = p.user_id
+            WHERE (m.sender_id = :user_id OR m.receiver_id = :user_id)
+            AND m.id IN (
+                SELECT MAX(id)
+                FROM messages
+                WHERE sender_id = :user_id OR receiver_id = :user_id
+                GROUP BY CASE WHEN sender_id = :user_id THEN receiver_id ELSE sender_id END
+            )
+            ORDER BY m.created_at DESC";
 
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute(['user_id' => $user_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMessages($myId, $otherId)
+    {
+        $sql = "SELECT * FROM messages 
+            WHERE (sender_id = :myId AND receiver_id = :otherId) 
+               OR (sender_id = :otherId AND receiver_id = :myId)
+            ORDER BY created_at ASC";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute([
+            ':myId' => $myId,
+            ':otherId' => $otherId
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getMessagesAfter($myId, $otherId, $lastId)
+    {
+        $sql = "SELECT * FROM messages 
+            WHERE ((sender_id = :myId AND receiver_id = :otherId) 
+               OR (sender_id = :otherId AND receiver_id = :myId))
+              AND id > :lastId
+            ORDER BY created_at ASC";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute([
+            ':myId' => $myId,
+            ':otherId' => $otherId,
+            ':lastId' => $lastId
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function sendMessages($myId, $otherId, $message)
+    {
+        $sql = "INSERT INTO messages (sender_id, receiver_id, message, created_at) 
+        VALUES (:myId, :otherId, :message, NOW())";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute(['myId' => $myId, 'otherId' => $otherId, 'message' => $message]);
+        return $stmt;
+    }
 
 }
 
