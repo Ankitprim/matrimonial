@@ -1,18 +1,20 @@
 <?php
 
-class Database{
+class Database
+{
     private $host = "localhost";
     private $db_name = "shadivivah";
     private $user = "root";
     private $password = "";
 
-    protected function connect(){
+    protected function connect()
+    {
         $conn = null;
 
-        try{
+        try {
             $conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->user, $this->password);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        }catch(PDOException $e){
+        } catch (PDOException $e) {
             echo "Connection Error: " . $e->getMessage();
         }
 
@@ -20,49 +22,53 @@ class Database{
     }
 }
 
-class query extends Database{
-    public function getData($table, $fields = '*', $conditionArr){
-          $condition = "";
-            foreach($conditionArr as $key => $value){
-                $condition .= "$key = :$key AND ";
-            }
-            $condition = rtrim($condition, " AND ");
-            $sql = "SELECT $fields FROM $table WHERE $condition";
-            $stmt = $this->connect()->prepare($sql);
-            foreach($conditionArr as $key => $value){
-                $stmt->bindValue(":$key", $value);
-            }
-            $stmt->execute();
-            return $stmt;        
+class query extends Database
+{
+    public function getData($table, $fields = '*', $conditionArr)
+    {
+        $condition = "";
+        foreach ($conditionArr as $key => $value) {
+            $condition .= "$key = :$key AND ";
+        }
+        $condition = rtrim($condition, " AND ");
+        $sql = "SELECT $fields FROM $table WHERE $condition";
+        $stmt = $this->connect()->prepare($sql);
+        foreach ($conditionArr as $key => $value) {
+            $stmt->bindValue(":$key", $value);
+        }
+        $stmt->execute();
+        return $stmt;
     }
 
-    public function insertData($table, $data){
+    public function insertData($table, $data)
+    {
         $fields = implode(", ", array_keys($data));
         $placeholders = ":" . implode(", :", array_keys($data));
         $sql = "INSERT INTO $table ($fields) VALUES ($placeholders)";
         $stmt = $this->connect()->prepare($sql);
-        foreach($data as $key => $value){
+        foreach ($data as $key => $value) {
             $stmt->bindValue(":$key", $value);
         }
         return $stmt->execute();
     }
-    public function updateData($table, $data, $conditionArr){
+    public function updateData($table, $data, $conditionArr)
+    {
         $set = "";
-        foreach($data as $key => $value){
+        foreach ($data as $key => $value) {
             $set .= "$key = :$key, ";
         }
         $set = rtrim($set, ", ");
         $condition = "";
-        foreach($conditionArr as $key => $value){
+        foreach ($conditionArr as $key => $value) {
             $condition .= "$key = :cond_$key AND ";
         }
         $condition = rtrim($condition, " AND ");
         $sql = "UPDATE $table SET $set WHERE $condition";
         $stmt = $this->connect()->prepare($sql);
-        foreach($data as $key => $value){
+        foreach ($data as $key => $value) {
             $stmt->bindValue(":$key", $value);
         }
-        foreach($conditionArr as $key => $value){
+        foreach ($conditionArr as $key => $value) {
             $stmt->bindValue(":cond_$key", $value);
         }
         return $stmt->execute();
@@ -83,201 +89,138 @@ class query extends Database{
         }
         return $stmt->execute();
     }
-    
-    public function searchData($table, $searchArr, $fields = '*'){
+
+    public function searchData($table, $searchArr, $fields = '*')
+    {
         $condition = "";
-        foreach($searchArr as $key => $value){
+        foreach ($searchArr as $key => $value) {
             $condition .= "$key LIKE :$key OR ";
         }
         $condition = rtrim($condition, " OR ");
         $sql = "SELECT $fields FROM $table WHERE $condition";
         $stmt = $this->connect()->prepare($sql);
-        foreach($searchArr as $key => $value){
+        foreach ($searchArr as $key => $value) {
             $stmt->bindValue(":$key", "%$value%");
         }
         $stmt->execute();
         return $stmt;
     }
 
-    public function getMatches($userId, $limit = 50, $offset = 0, $debug = false) {
-    $sql = "
-    SELECT DISTINCT 
-        p.profile_id,
-        u.user_id,
-        u.full_name,
-        u.age,
-        u.dob,
-        u.gender,
-        p.height,
-        p.religion,
-        p.caste,
-        p.motherTongue,
-        p.education,
-        p.profession,
-        p.location,
-        p.aboutMe,
-        p.image,
-        p.lookingFor
-    FROM profiles p
-    JOIN users u ON p.user_id = u.user_id
-    LEFT JOIN preferences pref ON pref.user_id = :user_id
-    WHERE 
-        p.user_id != :user_id
+    public function getMatches($userId, $limit = 50, $offset = 0, $debug = false)
+    {
+        $sql = "
+        SELECT DISTINCT 
+            p.profile_id,
+            u.user_id,
+            u.full_name,
+            u.age,
+            u.dob,
+            u.gender,
+            p.height,
+            p.religion,
+            p.caste,
+            p.motherTongue,
+            p.education,
+            p.profession,
+            p.location,
+            p.aboutMe,
+            p.image,
+            p.lookingFor
+        FROM profiles p
+        JOIN users u ON p.user_id = u.user_id
+        LEFT JOIN preferences pref ON pref.user_id = :user_id
+        WHERE 
+            p.user_id != :user_id
 
-        /* Age range */
-        AND (
-            pref.ageRange IS NULL OR TRIM(pref.ageRange) = '' OR LOWER(pref.ageRange) = 'n/a'
-            OR (
-                (COALESCE(NULLIF(u.age,0), TIMESTAMPDIFF(YEAR,u.dob,CURDATE())))
-                BETWEEN 
-                   CAST(SUBSTRING_INDEX(pref.ageRange,'-',1) AS UNSIGNED)
-                   AND CAST(SUBSTRING_INDEX(pref.ageRange,'-',-1) AS UNSIGNED)
+            /* Age range */
+            AND (
+                pref.ageRange IS NULL OR TRIM(pref.ageRange) = '' OR LOWER(pref.ageRange) = 'n/a'
+                OR (
+                    (COALESCE(NULLIF(u.age,0), TIMESTAMPDIFF(YEAR,u.dob,CURDATE())))
+                    BETWEEN 
+                    CAST(SUBSTRING_INDEX(pref.ageRange,'-',1) AS UNSIGNED)
+                    AND CAST(SUBSTRING_INDEX(pref.ageRange,'-',-1) AS UNSIGNED)
+                )
             )
-        )
 
-        /* Height range */
-        AND (
-            pref.heightRange IS NULL OR TRIM(pref.heightRange) = '' OR LOWER(pref.heightRange) = 'n/a'
-            OR (
-               CAST(p.height AS DECIMAL(8,2))
-               BETWEEN CAST(SUBSTRING_INDEX(pref.heightRange,'-',1) AS DECIMAL(8,2))
-                       AND CAST(SUBSTRING_INDEX(pref.heightRange,'-',-1) AS DECIMAL(8,2))
+            /* Height range */
+            AND (
+                pref.heightRange IS NULL OR TRIM(pref.heightRange) = '' OR LOWER(pref.heightRange) = 'n/a'
+                OR (
+                CAST(p.height AS DECIMAL(8,2))
+                BETWEEN CAST(SUBSTRING_INDEX(pref.heightRange,'-',1) AS DECIMAL(8,2))
+                        AND CAST(SUBSTRING_INDEX(pref.heightRange,'-',-1) AS DECIMAL(8,2))
+                )
             )
-        )
 
-        /* Religion (RELAXED with LIKE)
-        AND (
-            pref.religionPrefer IS NULL OR TRIM(pref.religionPrefer) = '' OR LOWER(pref.religionPrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.religionPrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.religion) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Religion (RELAXED with REGEXP) */
+            AND (
+                pref.religionPrefer IS NULL OR TRIM(pref.religionPrefer) = '' OR LOWER(pref.religionPrefer) = 'n/a'
+                OR LOWER(p.religion) REGEXP REPLACE(LOWER(pref.religionPrefer), ',', '|')
             )
-        )*/
 
-        /* Caste (RELAXED with LIKE) 
-        AND (
-            pref.castePrefer IS NULL OR TRIM(pref.castePrefer) = '' OR LOWER(pref.castePrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.castePrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.caste) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Caste (RELAXED with REGEXP) */
+            AND (
+                pref.castePrefer IS NULL OR TRIM(pref.castePrefer) = '' OR LOWER(pref.castePrefer) = 'n/a'
+                OR LOWER(p.caste) REGEXP REPLACE(LOWER(pref.castePrefer), ',', '|')
             )
-        ) */
 
-        /* Gender (strict) */
-        AND (
-            pref.genderPrefer IS NULL OR TRIM(pref.genderPrefer) = '' OR LOWER(pref.genderPrefer) = 'n/a'
-            OR FIND_IN_SET(u.gender, pref.genderPrefer) > 0
-        )
-
-        /* Mother Tongue (RELAXED with LIKE)
-        AND (
-            pref.motherTonguePrefer IS NULL OR TRIM(pref.motherTonguePrefer) = '' OR LOWER(pref.motherTonguePrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.motherTonguePrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.motherTongue) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Gender (strict) */
+            AND (
+                pref.genderPrefer IS NULL OR TRIM(pref.genderPrefer) = '' OR LOWER(pref.genderPrefer) = 'n/a'
+                OR FIND_IN_SET(u.gender, pref.genderPrefer) > 0
             )
-        ) */
 
-        /* Education (RELAXED with LIKE) 
-        AND (
-            pref.educationPrefer IS NULL OR TRIM(pref.educationPrefer) = '' OR LOWER(pref.educationPrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.educationPrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.education) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Mother Tongue (RELAXED with REGEXP) */
+            AND (
+                pref.motherTonguePrefer IS NULL OR TRIM(pref.motherTonguePrefer) = '' OR LOWER(pref.motherTonguePrefer) = 'n/a'
+                OR LOWER(p.motherTongue) REGEXP REPLACE(LOWER(pref.motherTonguePrefer), ',', '|')
             )
-        ) */
 
-        /* Profession (RELAXED with LIKE) 
-        AND (
-            pref.professionPrefer IS NULL OR TRIM(pref.professionPrefer) = '' OR LOWER(pref.professionPrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.professionPrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.profession) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Education (RELAXED with REGEXP) */
+            AND (
+                pref.educationPrefer IS NULL OR TRIM(pref.educationPrefer) = '' OR LOWER(pref.educationPrefer) = 'n/a'
+                OR LOWER(p.education) REGEXP REPLACE(LOWER(pref.educationPrefer), ',', '|')
             )
-        ) */
 
-        /* Location (RELAXED with LIKE) 
-        AND (
-            pref.locationPrefer IS NULL OR TRIM(pref.locationPrefer) = '' OR LOWER(pref.locationPrefer) = 'n/a'
-            OR EXISTS (
-                SELECT 1 FROM (
-                    SELECT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pref.locationPrefer, ',', numbers.n), ',', -1)) AS val
-                    FROM (
-                        SELECT 1 n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5
-                        UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10
-                    ) numbers
-                ) AS opts
-                WHERE opts.val <> '' 
-                AND LOWER(p.location) LIKE CONCAT('%', LOWER(opts.val), '%')
+            /* Profession (RELAXED with REGEXP) */
+            AND (
+                pref.professionPrefer IS NULL OR TRIM(pref.professionPrefer) = '' OR LOWER(pref.professionPrefer) = 'n/a'
+                OR LOWER(p.profession) REGEXP REPLACE(LOWER(pref.professionPrefer), ',', '|')
             )
-        )*/
 
-    ORDER BY u.full_name
-    LIMIT :limit OFFSET :offset
-    ";
+            /* Location (RELAXED with REGEXP) */
+            AND (
+                pref.locationPrefer IS NULL OR TRIM(pref.locationPrefer) = '' OR LOWER(pref.locationPrefer) = 'n/a'
+                OR LOWER(p.location) REGEXP REPLACE(LOWER(pref.locationPrefer), ',', '|')
+            )
 
-    $stmt = $this->connect()->prepare($sql);
-    $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        ORDER BY u.full_name
+        LIMIT :limit OFFSET :offset
+        ";
 
-    // if ($debug) {
-    //     echo "<pre>";
-    //     echo "SQL:\n" . $sql . "\n\n";
-    //     echo "Params:\n";
-    //     var_dump([
-    //         ':user_id' => $userId,
-    //         ':limit'   => $limit,
-    //         ':offset'  => $offset
-    //     ]);
-    //     echo "</pre>";
-    // }
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
-    $stmt->execute();
-    return $stmt;
-}
+        // if ($debug) {
+        //     echo "<pre>";
+        //     echo "SQL:\n" . $sql . "\n\n";
+        //     echo "Params:\n";
+        //     var_dump([
+        //         ':user_id' => $userId,
+        //         ':limit'   => $limit,
+        //         ':offset'  => $offset
+        //     ]);
+        //     echo "</pre>";
+        // }
+
+        $stmt->execute();
+        return $stmt;
+    }
 
 
-
-
-   
-
-   
 }
 
 
