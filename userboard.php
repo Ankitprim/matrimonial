@@ -59,6 +59,41 @@ $locationPrefer = $data[0]['locationPrefer'];
 // match card
 $stmt = $obj->getMatches($user_id, 50, 0, true);
 $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// var_dump($match);
+
+// for Match count
+$matchCount = 0;
+foreach ($match as $key) {
+    $matchCount++;
+}
+
+// message 
+$conditionArr = ['receiver_id' => $user_id];
+$stmt = $obj->getData("messages", "*", $conditionArr);
+$msgs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$messages_profiles = $obj->getUserConversations($user_id);
+// var_dump($messages_profiles  );
+
+
+$msgCount = 0;
+foreach ($msgs as $msg) {
+    $sender_id = $msg['sender_id'];
+    $conditionArr = ['user_id' => $sender_id];
+    $stmt = $obj->getData("users", "full_name", $conditionArr);
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // var_dump($users);
+    // echo $users['full_name'];
+
+    $conditionArr = ['user_id' => $sender_id];
+    $stmt = $obj->getData("profiles ", "image", $conditionArr);
+    $profiles = $stmt->fetch(PDO::FETCH_ASSOC);
+    // echo $profiles['image'];
+
+    // var_dump($users);
+    $msgCount++;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -69,6 +104,12 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrimonial Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Bootstrap JS (required for modals & buttons) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
     <style>
         * {
             margin: 0;
@@ -86,6 +127,10 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
             --light-gray: #e9ecef;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             --transition: all 0.3s ease;
+        }
+
+        a {
+            text-decoration: none;
         }
 
         body {
@@ -469,15 +514,26 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         .chat-area {
             flex: 1;
-            display: flex;
+            display: none;
             flex-direction: column;
         }
 
         .chat-header {
-            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             border-bottom: 1px solid var(--light-gray);
-            margin-bottom: 15px;
+            padding-bottom: 5px;
         }
+
+        .chat-user-img {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--light-gray);
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
 
         .chat-messages {
             flex: 1;
@@ -566,6 +622,20 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
             justify-content: space-between;
         }
 
+        .chat-user-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .modal-footer input {
+            flex: 1;
+            margin-right: 5px;
+        }
+
+
         /* Overlay for mobile sidebar */
         .sidebar-overlay {
             display: none;
@@ -618,7 +688,8 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
 
             .profile-form {
-                grid-template-columns: 1fr;
+                /* grid-template-columns: 1fr; */
+                display: block;
             }
 
             .messages-container {
@@ -742,9 +813,11 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <div class="header-actions">
-                    <div class="logout-btn">
-                        <a href="auth/logout.php"><i class="fa-solid fa-right-from-bracket fa-fade"></i></a>
-                    </div>
+                    <a href="auth/logout.php">
+                        <div class="logout-btn">
+                            <i class="fa-solid fa-right-from-bracket fa-fade"></i>
+                        </div>
+                    </a>
                     <div class="menu-toggle" id="menuToggle">
                         <i class="fas fa-bars"></i>
                     </div>
@@ -762,14 +835,14 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="stats-grid">
                         <div class="stat-card">
                             <i class="fa-solid fa-heart fa-bounce"></i>
-                            <h3>12</h3>
+                            <h3><?php echo $matchCount; ?></h3>
                             <p>New Matches</p>
                         </div>
 
                         <div class="stat-card">
                             <i class="fa-solid fa-comments fa-shake"></i>
-                            <h3>7</h3>
-                            <p>Unread Messages</p>
+                            <h3><?php echo $msgCount; ?></h3>
+                            <p>Total Messages</p>
                         </div>
 
                         <div class="stat-card">
@@ -842,8 +915,7 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     </div>
                     <p style="color:red"><?php echo $err; ?></p>
-                    <form class="profile-form" method="post" action="config/updateProfile.php"
-                        enctype="multipart/form-data">
+                    <form method="post" action="config/updateProfile.php" enctype="multipart/form-data">
                         <div class="profile-image-container">
                             <img src="uploads/<?php echo $image ?? 'default.webp'; ?>" alt="Profile"
                                 class="profile-image" id="profilePreview">
@@ -855,89 +927,92 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </label>
                         </div>
 
-                        <div class="form-group">
-                            <label for="name">Full Name</label>
-                            <input type="text" name="full_name" id="name" value="<?php echo $user_name; ?>">
-                        </div>
+                        <div class="profile-form">
+                            <div class="form-group">
+                                <label for="name">Full Name</label>
+                                <input type="text" name="full_name" id="name" value="<?php echo $user_name; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="age">Age</label>
-                            <input type="number" name="age" id="age" value="<?php echo $age; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="age">Age</label>
+                                <input type="number" name="age" id="age" value="<?php echo $age; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="height">Height (ft)</label>
-                            <input type="text" name="height" id="height" value="<?php echo $height; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="height">Height (cm)</label>
+                                <input type="text" name="height" id="height" value="<?php echo $height; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="dob">Date of Birth</label>
-                            <input type="date" id="dob" name="dob" value="<?php echo $dob; ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <select name="gender" id="gender">
-                                <option value="<?php echo $gender; ?>"><?php echo $gender; ?></option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
+                            <div class="form-group">
+                                <label for="dob">Date of Birth</label>
+                                <input type="date" id="dob" name="dob" value="<?php echo $dob; ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Gender</label>
+                                <select name="gender" id="gender">
+                                    <option value="<?php echo $gender; ?>"><?php echo $gender; ?></option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
 
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" name="email" id="email" value="<?php echo $eamil; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" name="email" id="email" value="<?php echo $eamil; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="phone">Phone</label>
-                            <input type="tel" id="phone" name="phone" value="<?php echo $phone; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="phone">Phone</label>
+                                <input type="tel" id="phone" name="phone" value="<?php echo $phone; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="motherTongue">Mother Tongue</label>
-                            <input type="text" id="motherTongue" name="motherTongue"
-                                value="<?php echo $motherTongue; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="motherTongue">Mother Tongue</label>
+                                <input type="text" id="motherTongue" name="motherTongue"
+                                    value="<?php echo $motherTongue; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="profession">Profession</label>
-                            <input type="text" id="profession" name="profession" value="<?php echo $profession; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="profession">Profession</label>
+                                <input type="text" id="profession" name="profession" value="<?php echo $profession; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="education">Education</label>
-                            <input type="text" id="education" name="education" value="<?php echo $education; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="education">Education</label>
+                                <input type="text" id="education" name="education" value="<?php echo $education; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="religion">Religion</label>
-                            <input type="text" id="religion" name="religion" value="<?php echo $religion; ?>">
-                        </div>
-                        <div class="form-group">
-                            <label for="caste">Caste</label>
-                            <input type="text" id="caste" name="caste" value="<?php echo $cast; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="religion">Religion</label>
+                                <input type="text" id="religion" name="religion" value="<?php echo $religion; ?>">
+                            </div>
+                            <div class="form-group">
+                                <label for="caste">Caste</label>
+                                <input type="text" id="caste" name="caste" value="<?php echo $cast; ?>">
+                            </div>
 
-                        <div class="form-group">
-                            <label for="location">Location</label>
-                            <input type="text" id="location" name="location" value="<?php echo $location; ?>">
-                        </div>
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <input type="text" id="location" name="location" value="<?php echo $location; ?>">
+                            </div>
 
-                        <div class="form-group" style="grid-column: 1 / span 2;">
-                            <label for="aboutMe">About Me</label>
-                            <textarea id="aboutMe" name="aboutMe"><?php echo $about; ?></textarea>
-                        </div>
+                            <div class="form-group" style="grid-column: 1 / span 2;">
+                                <label for="aboutMe">About Me</label>
+                                <textarea id="aboutMe" name="aboutMe"><?php echo $about; ?></textarea>
+                            </div>
 
-                        <div class="form-group" style="grid-column: 1 / span 2;">
-                            <label for="lookingFor">What I'm looking for in a partner</label>
-                            <textarea id="lookingFor" name="lookingFor"><?php echo $looknigFor; ?></textarea>
-                        </div>
+                            <div class="form-group" style="grid-column: 1 / span 2;">
+                                <label for="lookingFor">What I'm looking for in a partner</label>
+                                <textarea id="lookingFor" name="lookingFor"><?php echo $looknigFor; ?></textarea>
+                            </div>
 
-                        <div class="form-group" style="grid-column: 1 / span 2;">
-                            <button type="submit" name="update" class="btn btn-primary">Update Profile</button>
+                            <div class="form-group" style="grid-column: 1 / span 2;">
+                                <button type="submit" name="update" class="btn btn-primary">Update Profile</button>
+                            </div>
                         </div>
                     </form>
+
                 </div>
                 <!-- prefrences -->
                 <div class="content-section" id="prefrences">
@@ -953,7 +1028,7 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
 
                         <div class="form-group">
-                            <label for="heightRange">Height Range (ft.)</label>
+                            <label for="heightRange">Height Range (cm.)</label>
                             <input type="text" name="heightRange" id="heightRange" value="<?php echo $heightRange; ?>"
                                 placeholder="5.0-6.2">
                         </div>
@@ -1025,57 +1100,41 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     <div class="messages-container">
                         <div class="conversations">
-                            <div class="conversation active">
-                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
-                                    alt="User" class="conversation-img">
-                                <div class="conversation-info">
-                                    <h4>Michael Chen</h4>
-                                    <p>Hi there! How are you?</p>
-                                </div>
-                            </div>
+                            <?php if ($msgCount == 0): ?>
+                                <p>No Conversations Yet!</p>
+                            <?php else: ?>
+                                <?php foreach ($messages_profiles as $p1): ?>
 
-                            <div class="conversation">
-                                <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
-                                    alt="User" class="conversation-img">
-                                <div class="conversation-info">
-                                    <h4>David Kim</h4>
-                                    <p>Thanks for connecting!</p>
-                                </div>
-                            </div>
+                                    <div class="conversation openChat" data-id="<?php echo $p1['user_id']; ?>"
+                                        data-name="<?php echo $p1['full_name']; ?>" data-image="<?php echo $p1['image']; ?>">
+                                        <img src="uploads/<?php echo $p1['image']; ?>" alt="User" class="conversation-img">
+                                        <div class="conversation-info">
+                                            <h4><?php echo $p1['full_name']; ?></h4>
+                                            <p><?php echo $p1['message']; ?></p>
+                                        </div>
+                                    </div>
+
+                                <?php endforeach;
+                            endif; ?>
+
                         </div>
 
-                        <div class="chat-area">
+                        <div class="chat-area" style="display:none;"> <!-- hidden by default -->
                             <div class="chat-header">
-                                <h3>Michael Chen</h3>
+                                <img id="chatUserImage" src="uploads/default.png" class="chat-user-img">
+                                <h3 id="chatUserName"></h3>
                             </div>
-
-                            <div class="chat-messages">
-                                <div class="message received">
-                                    <p>Hi Sarah! I came across your profile and would love to connect.</p>
-                                </div>
-
-                                <div class="message sent">
-                                    <p>Hello Michael! Thanks for reaching out. I'd be happy to connect.</p>
-                                </div>
-
-                                <div class="message received">
-                                    <p>Great! I noticed we both enjoy hiking. Maybe we could plan a hike together
-                                        sometime?</p>
-                                </div>
-
-                                <div class="message sent">
-                                    <p>That sounds wonderful! I'm free most weekends. What about you?</p>
-                                </div>
-                            </div>
-
+                            <div class="chat-messages"></div>
                             <div class="message-input">
-                                <input type="text" placeholder="Type your message...">
-                                <button class="btn btn-primary">Send</button>
+                                <input type="text" id="chatMessage" placeholder="Type your message...">
+                                <button class="btn btn-primary" id="sendMessage">Send</button>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
+                <!-- Matches Section -->
                 <!-- Matches Section -->
                 <div class="content-section" id="matches">
                     <div class="section-header">
@@ -1084,25 +1143,80 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
 
                     <div class="matches-grid">
-                        <?php foreach($match as $result): ?>
-                        <div class="match-card" data-user="michael">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80"
-                                alt="Match" class="match-img">
-                            <div class="match-info">
-                                <h3><?php echo$result['full_name'] ; ?></h3>
-                                <p><?php echo$result['age'] ; ?> years • <?php echo$result['profession'] ; ?></p>
-                                <p><?php echo$result['location'] ; ?></p>
-                                <div class="match-actions">
-                                    <button class="btn btn-primary message-btn">Message</button>
-                                    <button class="btn view-profile-btn"
-                                        style="background-color: var(--light-gray);">View Profile</button>
+                        <?php foreach ($match as $result): ?>
+                            <div class="match-card">
+                                <img src="<?php echo APPURL . 'uploads/' . $result['image']; ?>" class="match-img">
+
+                                <div class="match-info">
+                                    <h3><?php echo htmlspecialchars($result['full_name']); ?></h3>
+                                    <p><?php echo $result['age']; ?> years •
+                                        <?php echo htmlspecialchars($result['profession']); ?>
+                                    </p>
+                                    <p><?php echo htmlspecialchars($result['location']); ?></p>
+
+                                    <div class="match-actions">
+                                        <button class="btn btn-primary openMessagePopup"
+                                            data-id="<?php echo $result['user_id']; ?>"
+                                            data-name="<?php echo htmlspecialchars($result['full_name']); ?>"
+                                            data-image="<?php echo $result['image']; ?>">
+                                            Message
+                                        </button>
+
+                                        <button class="btn btn-secondary openProfilePopup"
+                                            data-name="<?php echo htmlspecialchars($result['full_name']); ?>"
+                                            data-age="<?php echo $result['age']; ?>"
+                                            data-profession="<?php echo htmlspecialchars($result['profession']); ?>"
+                                            data-location="<?php echo htmlspecialchars($result['location']); ?>"
+                                            data-image="<?php echo $result['image']; ?>">
+                                            View Profile
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         <?php endforeach; ?>
-
                     </div>
                 </div>
+
+                <!-- Message Modal -->
+                <div class="modal fade" id="messageModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <img id="modalUserImage" src="uploads/default.png" class="chat-user-img">
+                                <h5 id="modalUserName" class="modal-title"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="chatMessages" style="max-height:300px; overflow-y:auto;"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <input type="text" id="modalChatMessage" class="form-control"
+                                    placeholder="Type your message...">
+                                <button id="modalSendMessage" class="btn btn-primary">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Profile Modal -->
+                <div class="modal fade" id="profileModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="profileName"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <img id="profileImage" src="uploads/default.png" class="img-fluid rounded-circle"
+                                    style="width:120px; height:120px; object-fit:cover;">
+                                <p id="profileAge"></p>
+                                <p id="profileProfession"></p>
+                                <p id="profileLocation"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
                 <!-- Other sections would be added similarly -->
                 <div class="content-section" id="search">
@@ -1123,6 +1237,7 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1177,38 +1292,6 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 });
             });
 
-            // Simulate user sending a message
-            const messageInput = document.querySelector('.message-input input');
-            const sendButton = document.querySelector('.message-input .btn');
-            const chatMessages = document.querySelector('.chat-messages');
-
-            sendButton.addEventListener('click', function () {
-                if (messageInput.value.trim() !== '') {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.classList.add('message', 'sent');
-                    messageDiv.innerHTML = `<p>${messageInput.value}</p>`;
-                    chatMessages.appendChild(messageDiv);
-                    messageInput.value = '';
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-                    // Simulate reply after a short delay
-                    setTimeout(() => {
-                        const replyDiv = document.createElement('div');
-                        replyDiv.classList.add('message', 'received');
-                        replyDiv.innerHTML = '<p>That sounds great! How about this weekend?</p>';
-                        chatMessages.appendChild(replyDiv);
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    }, 1000);
-                }
-            });
-
-            // Allow sending message with Enter key
-            messageInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    sendButton.click();
-                }
-            });
-
             // Handle window resize to adjust sidebar
             window.addEventListener('resize', function () {
                 if (window.innerWidth > 576) {
@@ -1227,6 +1310,156 @@ $match = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         });
     </script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let chatInterval;
+        let lastMessageId = 0;
+
+        $(document).on("click", ".openChat", function () {
+            let userId = $(this).data("id");
+            let userName = $(this).data("name");
+            let userImage = $(this).data("image");
+
+            // Show chat area
+            $(".chat-area").show();
+
+            // Scroll to messages section
+            $('html, body').animate({
+                scrollTop: $("#messages").offset().top
+            }, 600);
+
+            // Update chat header
+            $("#chatUserName").text(userName);
+            $("#chatUserImage").attr("src", "uploads/" + userImage);
+
+            // Clear old messages
+            $(".chat-area .chat-messages").html("");
+            lastMessageId = 0;
+
+            // Load chat
+            loadChat(userId);
+
+            // Refresh every 3 seconds
+            clearInterval(chatInterval);
+            chatInterval = setInterval(function () {
+                loadChat(userId);
+            }, 3000);
+
+            // Send message
+            $("#sendMessage").off().on("click", function () {
+                let msg = $("#chatMessage").val().trim();
+                if (msg !== "") {
+                    $.post("config/sendMessage.php", { id: userId, message: msg }, function (res) {
+                        if (res.trim() === "success") {
+                            $("#chatMessage").val("");
+                            loadChat(userId);
+                        } else {
+                            console.error(res);
+                        }
+                    });
+                }
+            });
+        });
+
+        // Load chat messages
+        function loadChat(userId) {
+            $.post("config/getChat.php", { id: userId, last_id: lastMessageId }, function (data) {
+                if (data.trim() !== "") {
+                    $(".chat-area .chat-messages").append(data);
+                    $(".chat-area .chat-messages").scrollTop($(".chat-area .chat-messages")[0].scrollHeight);
+
+                    lastMessageId = $(".chat-area .chat-messages .message").last().data("id");
+                }
+            });
+        }
+
+        // Enter key to send
+        $("#chatMessage").on("keydown", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                $("#sendMessage").click();
+            }
+        });
+
+    </script>
+    <script>
+        $(document).ready(function () {
+
+            let chatInterval;
+            let lastMessageId = 0;
+
+            // Message Modal
+            $(document).on("click", ".openMessagePopup", function () {
+                let userId = $(this).data("id");
+                let userName = $(this).data("name");
+                let userImage = $(this).data("image");
+
+                $("#modalUserName").text(userName);
+                $("#modalUserImage").attr("src", "uploads/" + userImage);
+                $("#chatMessages").html("");
+                lastMessageId = 0;
+
+                loadChatModal(userId);
+
+                clearInterval(chatInterval);
+                chatInterval = setInterval(() => { loadChatModal(userId); }, 3000);
+
+                // Show modal using Bootstrap API
+                let messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+                messageModal.show();
+
+                // Send message
+                $("#modalSendMessage").off("click").on("click", function () {
+                    let msg = $("#modalChatMessage").val().trim();
+                    if (msg !== "") {
+                        $.post("config/sendMessage.php", { id: userId, message: msg }, function (res) {
+                            if (res.trim() === "success") {
+                                $("#modalChatMessage").val("");
+                                loadChatModal(userId);
+                            }
+                        });
+                    }
+                });
+
+                // Enter key
+                $("#modalChatMessage").off("keydown").on("keydown", function (e) {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        $("#modalSendMessage").click();
+                    }
+                });
+            });
+
+            // Load chat messages
+            function loadChatModal(userId) {
+                $.post("config/getChat.php", { id: userId, last_id: lastMessageId }, function (data) {
+                    if (data.trim() !== "") {
+                        $("#chatMessages").append(data);
+                        $("#chatMessages").scrollTop($("#chatMessages")[0].scrollHeight);
+                        lastMessageId = $("#chatMessages .message").last().data("id");
+                    }
+                });
+            }
+
+            // Profile Modal
+            $(document).on("click", ".openProfilePopup", function () {
+                $("#profileName").text($(this).data("name"));
+                $("#profileImage").attr("src", "uploads/" + $(this).data("image"));
+                $("#profileAge").text("Age: " + $(this).data("age"));
+                $("#profileProfession").text("Profession: " + $(this).data("profession"));
+                $("#profileLocation").text("Location: " + $(this).data("location"));
+
+                let profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+                profileModal.show();
+            });
+
+        });
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 </body>
 
 </html>
