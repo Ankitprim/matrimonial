@@ -219,6 +219,38 @@ class query extends Database
         $stmt->execute();
         return $stmt;
     }
+    
+    public function blockUser($blocker_id, $blocked_id)
+    {
+        try {
+            $sql = "INSERT IGNORE INTO blocked_users (blocker_id, blocked_id)
+                VALUES (:blocker_id, :blocked_id)";
+            $stmt = $this->connect()->prepare($sql);
+            $stmt->execute([
+                ':blocker_id' => $blocker_id,
+                ':blocked_id' => $blocked_id
+            ]);
+            return true;
+        } catch (PDOException $e) {
+            echo "Block Error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    public function canSendMessage($sender_id, $receiver_id)
+    {
+        $sql = "SELECT 1 FROM blocked_users 
+            WHERE (blocker_id = :receiver_id AND blocked_id = :sender_id)
+               OR (blocker_id = :sender_id AND blocked_id = :receiver_id)";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute([
+            ':sender_id' => $sender_id,
+            ':receiver_id' => $receiver_id
+        ]);
+        return $stmt->rowCount() === 0; // true if no block exists
+    }
+
+
     public function getUserConversations($user_id)
     {
         $sql = "SELECT 
@@ -287,6 +319,48 @@ class query extends Database
         $stmt->execute(['myId' => $myId, 'otherId' => $otherId, 'message' => $message]);
         return $stmt;
     }
+
+    public function getProfile($user_id)
+    {
+
+        $sql = "SELECT u.user_id,u.gender, u.full_name, p.image, p.height, p.religion, p.caste, 
+               p.motherTongue, p.education, p.profession, p.location, 
+               p.aboutMe, p.lookingFor
+        FROM users u
+        JOIN profiles p ON u.user_id = p.user_id
+        WHERE u.user_id = ?";
+        $stmt = $this->connect()->prepare($sql);
+        $stmt->execute([$user_id]);
+        $profile = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $profile;
+    }
+
+    public function getSearch($keyword)
+    {
+        try {
+            $sql = "SELECT 
+        u.user_id,
+        u.full_name,
+        u.age,
+        p.image,
+        p.height,
+        p.motherTongue,
+        p.location FROM users u LEFT JOIN profiles p ON u.user_id = p.user_id
+        WHERE u.user_id = :keyword OR u.full_name LIKE :search_name;
+        ";
+
+            $stmt = $this->connect()->prepare($sql);
+            $stmt->bindValue(':keyword', $keyword, PDO::PARAM_INT);
+            $stmt->bindValue(':search_name', "%$keyword%", PDO::PARAM_STR);
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $result;
+        } catch (PDOException $e) {
+            echo "Search Error", $e->getMessage();
+            return [];
+        }
+    }
+
 
 }
 
