@@ -633,8 +633,62 @@ foreach ($msgs as $msg) {
         .modal-footer input {
             flex: 1;
             margin-right: 5px;
+
+        }
+        .modal-footer input:focus{
+            border: 1px ;
+            box-shadow: 0 0 0 3px rgba(255, 0, 106, 0.5);
+        }
+        .modal-footer button:active{
+            background-color: #ff2d87;
         }
 
+        #profileModal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            padding-top: 80px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background: rgba(0, 0, 0, 0.6);
+
+        }
+        .modal-header{
+            border: 0px;
+        }
+        .modal-body{
+            background:linear-gradient(135deg, #ff829dff 0%, rgba(255, 112, 174, 1) 100%) ;
+            border-radius: 20px 20px 0px 0px;
+        }
+        .modal-footer{
+            border-top: 2px solid #ff4093ff;
+            background:linear-gradient(135deg, #ff829dff 0%, rgba(255, 112, 174, 1) 100%) ;
+            border-radius: 0px 0px 0px 20px;
+
+        }
+        .modal-footer>.btn-primary{
+            background-color: #ff146eff;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #ff6888ff 0%, #ff4093ff 100%);
+            margin: auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 22px;
+            cursor: pointer;
+        }
 
         /* Overlay for mobile sidebar */
         .sidebar-overlay {
@@ -1135,7 +1189,6 @@ foreach ($msgs as $msg) {
                 </div>
 
                 <!-- Matches Section -->
-                <!-- Matches Section -->
                 <div class="content-section" id="matches">
                     <div class="section-header">
                         <h2>Your Matches</h2>
@@ -1162,12 +1215,8 @@ foreach ($msgs as $msg) {
                                             Message
                                         </button>
 
-                                        <button class="btn btn-secondary openProfilePopup"
-                                            data-name="<?php echo htmlspecialchars($result['full_name']); ?>"
-                                            data-age="<?php echo $result['age']; ?>"
-                                            data-profession="<?php echo htmlspecialchars($result['profession']); ?>"
-                                            data-location="<?php echo htmlspecialchars($result['location']); ?>"
-                                            data-image="<?php echo $result['image']; ?>">
+                                        <button class="btn btn-secondary view-profile"
+                                            data-id="<?php echo $result['user_id']; ?>">
                                             View Profile
                                         </button>
                                     </div>
@@ -1199,24 +1248,12 @@ foreach ($msgs as $msg) {
                 </div>
 
                 <!-- View Profile Modal -->
-                <div class="modal fade" id="profileModal" tabindex="-1">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="profileName"></h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <img id="profileImage" src="uploads/default.png" class="img-fluid rounded-circle"
-                                    style="width:120px; height:120px; object-fit:cover;">
-                                <p id="profileAge"></p>
-                                <p id="profileProfession"></p>
-                                <p id="profileLocation"></p>
-                            </div>
-                        </div>
+                <div id="profileModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <div id="profileData">Loading...</div>
                     </div>
                 </div>
-
 
                 <!-- Other sections would be added similarly -->
                 <div class="content-section" id="search">
@@ -1442,20 +1479,40 @@ foreach ($msgs as $msg) {
                 });
             }
 
-            // Profile Modal
-            $(document).on("click", ".openProfilePopup", function () {
-                $("#profileName").text($(this).data("name"));
-                $("#profileImage").attr("src", "uploads/" + $(this).data("image"));
-                $("#profileAge").text("Age: " + $(this).data("age"));
-                $("#profileProfession").text("Profession: " + $(this).data("profession"));
-                $("#profileLocation").text("Location: " + $(this).data("location"));
-
-                let profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-                profileModal.show();
-            });
-
         });
 
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById("profileModal");
+            const closeBtn = document.querySelector(".close");
+            const profileData = document.getElementById("profileData");
+
+            // Handle view profile click
+            document.querySelectorAll(".view-profile").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    let userId = this.getAttribute("data-id");
+                    profileData.innerHTML = "Loading...";
+
+                    fetch("config/getProfile.php?id=" + userId)
+                        .then(res => res.text())
+                        .then(data => {
+                            profileData.innerHTML = data;
+                            modal.style.display = "block";
+                        });
+                });
+            });
+
+            // Close modal
+            closeBtn.onclick = function () {
+                modal.style.display = "none";
+            }
+            window.onclick = function (e) {
+                if (e.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+        });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
