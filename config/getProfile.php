@@ -1,6 +1,6 @@
 <?php
 include 'database.php';
-$obj = new query() ;
+$obj = new query();
 
 if (!isset($_GET['id'])) {
     echo "Invalid request!";
@@ -18,6 +18,10 @@ if ($profile) {
             <h3 style='margin: 0 0 25px 0; font-size: 24px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>{$profile['full_name']}</h3>
             
             <div style='text-align: left; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px);'>
+                <p style='margin: 12px 0; font-size: 14px; display: flex; align-items: center;'>
+                    <span style='display: inline-block; width: 120px; font-weight: bold; color: #ffffff;'>Gender:</span> 
+                    <span style='color: white;'>{$profile['gender']}</span>
+                </p>
                 <p style='margin: 12px 0; font-size: 14px; display: flex; align-items: center;'>
                     <span style='display: inline-block; width: 120px; font-weight: bold; color: #ffffff;'>Height:</span> 
                     <span style='color: white;'>{$profile['height']} cm</span>
@@ -64,4 +68,3 @@ if ($profile) {
     echo "Profile not found!";
 }
 ?>
-
