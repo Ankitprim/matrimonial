@@ -35,44 +35,16 @@ include("config/init.php");
         .hero h1 {
             font-size: 2.5rem;
             margin-bottom: 1rem;
+            animation: fadeInDown 1s ease;
         }
 
         .hero p {
             font-size: 1.2rem;
             margin-bottom: 2rem;
+            animation: fadeInUp 1s ease;
         }
 
-        /* Filter Section */
-        .filters {
-            max-width: 1200px;
-            margin: 0 auto 3rem;
-            padding: 0 1.5rem;
-        }
-
-        .filter-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            background: white;
-            border: 2px solid #ff6b6b;
-            color: #ff6b6b;
-            padding: 0.5rem 1.5rem;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .filter-btn.active,
-        .filter-btn:hover {
-            background: #ff6b6b;
-            color: white;
-        }
-
+      
         /* Success Stories Grid */
         .stories-container {
             max-width: 1200px;
@@ -92,14 +64,10 @@ include("config/init.php");
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s, box-shadow 0.3s;
-            opacity: 0;
-            transform: translateY(50px);
+            opacity: 1;
+            transform: translateY(0px);
         }
 
-        .story-card.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
 
         .story-card:hover {
             transform: translateY(-10px);
@@ -209,6 +177,41 @@ include("config/init.php");
             font-weight: 600;
         }
 
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .hero h1 {
@@ -243,7 +246,7 @@ include("config/init.php");
 
 <body>
     <!-- Header -->
-    <?php include'include/header.php'; ?>
+    <?php include 'include/header.php'; ?>
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
@@ -252,15 +255,6 @@ include("config/init.php");
         </div>
     </section>
 
-    <!-- Filter Section -->
-    <section class="filters">
-        <div class="filter-buttons">
-            <button class="filter-btn active" data-filter="all">All Stories</button>
-            <button class="filter-btn" data-filter="recent">Recent</button>
-            <button class="filter-btn" data-filter="long-term">Long Term</button>
-            <button class="filter-btn" data-filter="international">International</button>
-        </div>
-    </section>
 
     <!-- Success Stories Grid -->
     <section class="stories-container">
@@ -291,21 +285,6 @@ include("config/init.php");
                     <p class="wedding-date">Married: June 8, 2020</p>
                     <p class="story-excerpt">After three years of marriage, we're happier than ever. MatrimonyMatch
                         helped us find our perfect compatibility...</p>
-                    <a href="#" class="read-more">Read Full Story <i class="fas fa-arrow-right"></i></a>
-                </div>
-            </div>
-
-            <!-- Story 3 -->
-            <div class="story-card" data-category="international">
-                <div class="story-image">
-                    <img src="https://images.unsplash.com/photo-1567532939604-b6b5b0db1604?ixlib=rb-4.0.3&auto=format&fit=crop&w=700&q=80"
-                        alt="Couple 3">
-                </div>
-                <div class="story-content">
-                    <h3 class="couple-name">David & Anita</h3>
-                    <p class="wedding-date">Married: September 22, 2022</p>
-                    <p class="story-excerpt">Cross-cultural relationships can be challenging, but MatrimonyMatch made it
-                        easy to bridge the gap...</p>
                     <a href="#" class="read-more">Read Full Story <i class="fas fa-arrow-right"></i></a>
                 </div>
             </div>
@@ -363,13 +342,13 @@ include("config/init.php");
             <h2>What Couples Say</h2>
             <div class="testimonial-slider">
                 <div class="testimonial">
-                    <p class="testimonial-text">"MatrimonyMatch made the process so simple. We were matched based on
+                    <p class="testimonial-text">"shadiVivah made the process so simple. We were matched based on
                         genuine compatibility, not just superficial factors."</p>
                     <p class="testimonial-author">- Raj & Anjali, Married 2 years</p>
                 </div>
                 <div class="testimonial">
                     <p class="testimonial-text">"As someone living abroad, I was skeptical about finding a partner from
-                        my culture. MatrimonyMatch exceeded all my expectations!"</p>
+                        my culture. shadiVivah exceeded all my expectations!"</p>
                     <p class="testimonial-author">- Neha & Sameer, Married 1 year</p>
                 </div>
                 <div class="testimonial">
@@ -466,7 +445,7 @@ include("config/init.php");
                     left: scrollAmount,
                     behavior: 'smooth'
                 });
-            }, 4000);
+            }, 2000);
         });
     </script>
 </body>
