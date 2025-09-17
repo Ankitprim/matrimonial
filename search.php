@@ -1,6 +1,10 @@
 <?php
 include("config/init.php");
 include("config/database.php");
+if(!isset($_SESSION['user_id'])){
+    header('location:auth/login.php');
+    exit;
+}
 $obj = new query();
 $result = [];
 $searchQuery = "Try to search Name or user id.";
@@ -53,10 +57,22 @@ if (isset($_POST["search"])) {
         }
 
         .search-header h1 {
-            font-size: 2rem;
+            font-size: 3rem;
             margin-bottom: 10px;
+            animation: fadeInUp 1s ease;
         }
 
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
         .search-box {
             display: flex;
             justify-content: center;
