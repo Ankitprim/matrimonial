@@ -464,6 +464,29 @@ class query extends Database
             return [];
         }
     }
+    
+    // Get total count for search results
+    public function getSearchCount($searchQuery) {
+        try {
+            $sql = "SELECT COUNT(*) as total FROM users WHERE 
+                    (full_name LIKE :search OR 
+                     user_id LIKE :search OR 
+                     email LIKE :search OR 
+                     phone LIKE :search) 
+                    AND status = 'active'";
+            
+            $stmt = $this->connect()->prepare($sql);
+            $searchParam = '%' . $searchQuery . '%';
+            $stmt->bindParam(':search', $searchParam, PDO::PARAM_STR);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['total'];
+        } catch (PDOException $e) {
+            error_log("Search count error: " . $e->getMessage());
+            return 0;
+        }
+    }
 
 
 }
