@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === "POST" && isset($_POST['update'])) {
         'motherTongue' => $_POST['motherTongue'],
         'education'    => $_POST['education'],
         'profession'   => $_POST['profession'],
+        'income'       => $_POST['income'],
         'location'     => $_POST['location'],
         'aboutMe'      => $_POST['aboutMe'],
         'lookingFor'   => $_POST['lookingFor']

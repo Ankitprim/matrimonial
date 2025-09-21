@@ -37,6 +37,7 @@ $religion = $data[0]['religion'];
 $cast = $data[0]['caste'];
 $location = $data[0]['location'];
 $education = $data[0]['education'];
+$income = $data[0]['income'];
 $profession = $data[0]['profession'];
 $about = $data[0]['aboutMe'];
 $looknigFor = $data[0]['lookingFor'];
@@ -1031,6 +1032,11 @@ foreach ($msgs as $msg) {
                                 <label for="profession">Profession</label>
                                 <input type="text" id="profession" name="profession" value="<?php echo $profession; ?>">
                             </div>
+                            
+                            <div class="form-group">
+                                <label for="income">Income (per/month)</label>
+                                <input type="text" id="income" name="income" value="<?php echo $income; ?>">
+                            </div>
 
                             <div class="form-group">
                                 <label for="education">Education</label>
@@ -1220,6 +1226,7 @@ foreach ($msgs as $msg) {
                                             View Profile
                                         </button>
                                     </div>
+
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1420,6 +1427,7 @@ foreach ($msgs as $msg) {
         });
 
     </script>
+       
     <script>
         $(document).ready(function () {
 

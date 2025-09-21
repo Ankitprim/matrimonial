@@ -43,6 +43,10 @@ if ($profile) {
                     <span style='color: white;'>{$profile['education']}</span>
                 </p>
                 <p style='margin: 12px 0; font-size: 14px; display: flex; align-items: center;'>
+                    <span style='display: inline-block; width: 120px; font-weight: bold; color: #ffffff;'>Income:</span> 
+                    <span style='color: white;'>{$profile['income']}</span>
+                </p>
+                <p style='margin: 12px 0; font-size: 14px; display: flex; align-items: center;'>
                     <span style='display: inline-block; width: 120px; font-weight: bold; color: #ffffff;'>Profession:</span> 
                     <span style='color: white;'>{$profile['profession']}</span>
                 </p>
