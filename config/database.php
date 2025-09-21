@@ -360,6 +360,110 @@ class query extends Database
             return [];
         }
     }
+     public function advancedSearch($motherTongue, $income, $location, $gender, $height, $education, $age, $limit = 8, $offset = 0) {
+        try {
+            $sql = "SELECT * FROM users ";
+            $params = [];
+            $conditions = [];
+
+            // Build dynamic conditions
+            if (!empty($motherTongue)) {
+                $conditions[] = "motherTongue LIKE :motherTongue";
+                $params[':motherTongue'] = '%' . $motherTongue . '%';
+            }
+
+            if (!empty($location)) {
+                $conditions[] = "(location LIKE :location OR city LIKE :location OR state LIKE :location)";
+                $params[':location'] = '%' . $location . '%';
+            }
+
+            if (!empty($gender)) {
+                $conditions[] = "gender = :gender";
+                $params[':gender'] = $gender;
+            }
+
+            if (!empty($education)) {
+                $conditions[] = "education LIKE :education";
+                $params[':education'] = '%' . $education . '%';
+            }
+
+
+            // Handle age range
+            if (!empty($age)) {
+                if (strpos($age, '-') !== false) {
+                    $ageRange = explode('-', $age);
+                    if (count($ageRange) == 2) {
+                        $minAge = trim($ageRange[0]);
+                        $maxAge = trim($ageRange[1]);
+                        $conditions[] = "age BETWEEN :minAge AND :maxAge";
+                        $params[':minAge'] = $minAge;
+                        $params[':maxAge'] = $maxAge;
+                    }
+                } else {
+                    $conditions[] = "age = :age";
+                    $params[':age'] = $age;
+                }
+            }
+
+            // Handle height range
+            if (!empty($height)) {
+                if (strpos($height, '-') !== false) {
+                    $heightRange = explode('-', $height);
+                    if (count($heightRange) == 2) {
+                        $minHeight = trim($heightRange[0]);
+                        $maxHeight = trim($heightRange[1]);
+                        $conditions[] = "height BETWEEN :minHeight AND :maxHeight";
+                        $params[':minHeight'] = $minHeight;
+                        $params[':maxHeight'] = $maxHeight;
+                    }
+                } else {
+                    $conditions[] = "height = :height";
+                    $params[':height'] = $height;
+                }
+            }
+
+            // Handle income range
+            if (!empty($income)) {
+                if (strpos($income, '-') !== false) {
+                    $incomeRange = explode('-', $income);
+                    if (count($incomeRange) == 2) {
+                        $minIncome = trim($incomeRange[0]);
+                        $maxIncome = trim($incomeRange[1]);
+                        $conditions[] = "income BETWEEN :minIncome AND :maxIncome";
+                        $params[':minIncome'] = $minIncome;
+                        $params[':maxIncome'] = $maxIncome;
+                    }
+                } else {
+                    $conditions[] = "income >= :income";
+                    $params[':income'] = $income;
+                }
+            }
+
+            // Add conditions to SQL
+            if (!empty($conditions)) {
+                $sql .= " AND " . implode(" AND ", $conditions);
+            }
+
+            $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+
+            $stmt = $this->connect()->prepare($sql);
+            
+            // Bind all parameters
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Advanced search error: " . $e->getMessage());
+            return [];
+        }
+    }
 
 
 }
