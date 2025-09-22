@@ -1,25 +1,11 @@
 <?php
 include("config/init.php");
 include("config/database.php");
-if(!isset($_SESSION['user_id'])){
+if (!isset($_SESSION['user_id'])) {
     header('location:auth/login.php');
     exit;
 }
-$obj = new query();
-$result = [];
-$searchQuery = "Try to search Name or user id.";
 
-if (isset($_POST["search"])) {
-    $searchQuery = htmlspecialchars($_POST["searchQuery"]);
-    if ($searchQuery != "") {
-
-        $result = $obj->getSearch($searchQuery);
-        // var_dump($result);
-
-    } else {
-        $result = [];
-    }
-}
 ?>
 
 <!DOCTYPE html>
@@ -30,19 +16,17 @@ if (isset($_POST["search"])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Search Section</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap JS (required for modals & buttons) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="css/main.css">
+
     <style>
+        /* Previous styles remain the same... */
         #search-container {
             margin-top: 3rem;
         }
 
         .search-container {
-            /* max-width: 1200px;
-            margin: 0 auto; */
             background: white;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
@@ -73,6 +57,7 @@ if (isset($_POST["search"])) {
                 transform: translateY(0);
             }
         }
+
         .search-box {
             display: flex;
             justify-content: center;
@@ -85,6 +70,7 @@ if (isset($_POST["search"])) {
             border: none;
             border-radius: 5px 0 0 5px;
             font-size: 1rem;
+            min-width: 300px;
         }
 
         .search-box button {
@@ -125,61 +111,109 @@ if (isset($_POST["search"])) {
         .filters-container {
             padding: 20px;
             display: none;
-            background: #fff8f8;
+            background: linear-gradient(135deg, #fff8f8, #ffe8e8);
             border-bottom: 2px solid #ff6b6b;
         }
 
         .filters-container.active {
             display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .filter-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
         .filter-group {
-            margin-bottom: 15px;
+            position: relative;
         }
 
         .filter-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+            font-size: 0.95rem;
         }
 
         .filter-group select,
         .filter-group input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .filter-group input::placeholder {
+            color: #999;
+            font-style: italic;
         }
 
         .filter-buttons {
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 15px;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .filter-buttons button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 120px;
         }
 
         .filter-buttons button.apply {
-            background: #ff6b6b;
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
             color: white;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .filter-buttons button.apply:hover {
+            background: linear-gradient(135deg, #ff5252, #ff7979);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
         }
 
         .filter-buttons button.reset {
-            background: #ddd;
-            color: #333;
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+        }
+
+        .filter-buttons button.reset:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
         }
 
         .results-container {
@@ -191,90 +225,100 @@ if (isset($_POST["search"])) {
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
         }
 
         .results-count {
-            font-weight: 500;
+            font-weight: 600;
             color: #555;
-        }
-
-        .sort-select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            font-size: 1.1rem;
         }
 
         .user-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
         }
 
         .user-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
         }
 
         .user-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
 
         .user-image {
-            height: 200px;
+            height: 220px;
             overflow: hidden;
+            position: relative;
         }
 
         .user-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .user-card:hover .user-image img {
+            transform: scale(1.05);
         }
 
         .user-info {
-            padding: 15px;
+            padding: 20px;
         }
 
         .user-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
             color: #ff6b6b;
         }
 
         .user-details {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 10px 0;
+            gap: 12px;
+            margin: 15px 0;
         }
 
         .user-detail {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
             font-size: 0.9rem;
+            color: #666;
         }
 
         .user-detail i {
             color: #ff6b6b;
+            width: 16px;
         }
 
         .match-actions {
             display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
+            gap: 10px;
+            margin-top: 20px;
         }
 
         .match-actions button {
-            padding: 8px 15px;
+            flex: 1;
+            padding: 10px 15px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: 500;
-            transition: background 0.3s;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
         .btn-view {
@@ -283,192 +327,89 @@ if (isset($_POST["search"])) {
         }
 
         .btn-message {
-            background: #f0f0f0;
-            color: #333;
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px solid #dee2e6;
         }
 
         .btn-view:hover {
             background: #ff5252;
+            transform: translateY(-2px);
         }
 
         .btn-message:hover {
-            background: #e0e0e0;
+            background: #e9ecef;
+            transform: translateY(-2px);
         }
 
-        .chat-area {
-            flex: 1;
-            display: none;
-            flex-direction: column;
-        }
-
-        .chat-header {
+        /* Pagination Styles */
+        .pagination-container {
             display: flex;
+            justify-content: center;
             align-items: center;
+            margin-top: 30px;
             gap: 10px;
-            border-bottom: 1px solid var(--light-gray);
-            padding-bottom: 5px;
         }
 
-        .chat-user-img {
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--light-gray);
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .chat-area {
-            flex: 1;
-            display: none;
-            flex-direction: column;
-        }
-
-        .chat-header {
+        .pagination {
             display: flex;
+            gap: 5px;
             align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid var(--light-gray);
-            padding-bottom: 5px;
         }
 
-        .chat-user-img {
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--light-gray);
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            max-height: 350px;
-            padding: 10px;
-            background-color: var(--light);
+        .pagination a,
+        .pagination span {
+            display: inline-block;
+            padding: 10px 15px;
+            text-decoration: none;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
-            margin-bottom: 15px;
+            color: #495057;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 45px;
+            text-align: center;
         }
 
-        .message {
-            padding: 10px 15px;
-            border-radius: 18px;
-            margin-bottom: 10px;
-            max-width: 70%;
-        }
-
-        .message.received {
-            background-color: white;
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message.sent {
-            background-color: var(--primary);
+        .pagination a:hover {
+            background: #ff6b6b;
             color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 5px;
-            margin-left: auto;
+            border-color: #ff6b6b;
+            transform: translateY(-2px);
         }
 
-        .message-input {
-            display: flex;
-            gap: 10px;
-        }
-
-        .message-input input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid var(--light-gray);
-            border-radius: 20px;
-        }
-
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            max-height: 350px;
-            padding: 10px;
-            background-color: var(--light);
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .message {
-            padding: 10px 15px;
-            border-radius: 18px;
-            margin-bottom: 10px;
-            max-width: 70%;
-        }
-
-        .message.received {
-            background-color: white;
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
-        }
-        .message.received>p{
-            margin-bottom: 0px;
-        }
-
-        .message.sent {
-            background-color: #ff1869ff;
+        .pagination .current {
+            background: #ff6b6b;
             color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 5px;
-            margin-left: auto;
-        }
-        .message.sent>p{
-            margin-bottom: 0px;
+            border-color: #ff6b6b;
         }
 
-        .message-input {
-            display: flex;
-            gap: 10px;
+        .pagination .disabled {
+            color: #adb5bd;
+            cursor: not-allowed;
+            background: #f8f9fa;
         }
 
-        .message-input input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid var(--light-gray);
-            border-radius: 20px;
+        .pagination .disabled:hover {
+            transform: none;
+            background: #f8f9fa;
+            color: #adb5bd;
         }
 
-
-        .modal-footer input {
-            flex: 1;
-            margin-right: 5px;
-
+        .pagination-info {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin-left: 20px;
         }
 
-        .modal-footer input:focus {
-            border: 1px;
-            box-shadow: 0 0 0 3px rgba(255, 0, 106, 0.5);
-        }
-
-        .modal-footer button{
-            background-color: #ff1869ff;
-        }
-
-        #profileModal {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            padding-top: 80px;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background: rgba(0, 0, 0, 0.6);
-
-        }
-
+        /* Previous modal styles remain the same... */
         .modal-header {
             border: 0px;
-            gap:20px
+            gap: 20px;
         }
-        .modal-header>h5{
-            color:#ffffff;
+
+        .modal-header>h5 {
+            color: #ffffff;
         }
 
         .modal-body {
@@ -479,15 +420,14 @@ if (isset($_POST["search"])) {
         .modal-footer {
             border-top: 2px solid #ff4093ff;
             background: linear-gradient(135deg, #ff829dff 0%, rgba(255, 112, 174, 1) 100%);
-            border-radius: 0px 0px 0px 20px;
-
+            border-radius: 0px 0px 20px 20px;
         }
 
         .modal-footer>.btn-send {
-            padding:7px 10px;
+            padding: 7px 10px;
             border: 0px;
             border-radius: 5px;
-            color:#ffffff;
+            color: #ffffff;
             font-weight: 700;
             background-color: red;
         }
@@ -502,26 +442,131 @@ if (isset($_POST["search"])) {
             position: relative;
         }
 
+        #profileModal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            padding-top: 80px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
         .close {
             position: absolute;
             right: 15px;
             top: 10px;
             font-size: 22px;
             cursor: pointer;
+            color: white;
+        }
+
+        /* Chat styles remain the same... */
+        .chat-area {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 5px;
+        }
+
+        .chat-user-img {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--light-gray);
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 350px;
+            padding: 10px;
+            background-color: var(--light);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            max-width: 70%;
+        }
+
+        .message.received {
+            background-color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.received>p {
+            margin-bottom: 0px;
+        }
+
+        .message.sent {
+            background-color: #ff1869ff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+            margin-left: auto;
+        }
+
+        .message.sent>p {
+            margin-bottom: 0px;
+        }
+
+        .message-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--light-gray);
+            border-radius: 20px;
+        }
+
+        .modal-footer input {
+            flex: 1;
+            margin-right: 5px;
+        }
+
+        .modal-footer input:focus {
+            border: 1px;
+            box-shadow: 0 0 0 3px rgba(255, 0, 106, 0.5);
+        }
+
+        .modal-footer button {
+            background-color: #ff1869ff;
         }
 
         @media (max-width: 768px) {
             .search-box {
                 flex-direction: column;
+                align-items: center;
             }
 
             .search-box input {
-                border-radius: 5px;
+                border-radius: 8px;
                 margin-bottom: 10px;
+                min-width: 280px;
             }
 
             .search-box button {
-                border-radius: 5px;
+                border-radius: 8px;
+                width: 280px;
             }
 
             .search-options {
@@ -538,10 +583,19 @@ if (isset($_POST["search"])) {
                 gap: 10px;
             }
 
-            /*             
             .user-cards {
                 grid-template-columns: 1fr;
-            } */
+            }
+
+            .pagination-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .pagination-info {
+                margin-left: 0;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -550,161 +604,111 @@ if (isset($_POST["search"])) {
     <header>
         <?php include 'include/header.php'; ?>
     </header>
+
     <section>
         <div class="search-container">
-            <div class="search-header ">
-                <h1>Find Your Match</h1>
+            <div class="search-header">
+                <h1>Find Your Perfect Match</h1>
                 <div class="search-box">
-                    <form action="" method="post">
-                        <input type="text" name="searchQuery" placeholder="Search by name or ID...">
+                    <form id="searchForm" style="display: flex;">
+                        <input type="text" name="searchQuery" placeholder="Search by name or ID..." id="searchInput">
                         <button type="submit" name="search"><i class="fas fa-search"></i> Search</button>
                     </form>
                 </div>
                 <div class="search-options">
-                    <button id="toggleFilters"><i class="fas fa-filter"></i> Advanced Filters</button>
-                    <!-- <button><i class="fas fa-id-card"></i> Search by ID</button> -->
+                    <button type="button" id="toggleFilters"><i class="fas fa-filter"></i> Advanced Filters</button>
                 </div>
             </div>
 
-            <div class="filters-container " id="filtersContainer">
-                <div class="filter-grid container">
-                    <div class="filter-group">
-                        <label for="motherTongue">Mother Tongue</label>
-                        <select id="motherTongue">
-                            <option value="">Any</option>
-                            <option value="english">English</option>
-                            <option value="spanish">Spanish</option>
-                            <option value="hindi">Hindi</option>
-                            <option value="mandarin">Mandarin</option>
-                        </select>
+            <div class="filters-container" id="filtersContainer">
+                <form id="filterForm">
+                    <div class="filter-grid container">
+                        <div class="filter-group">
+                            <label for="motherTongue"><i class="fas fa-language"></i> Mother Tongue</label>
+                            <input type="text" name="motherTongue" id="motherTongue"
+                                placeholder="e.g. Hindi, Tamil, English">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="income"><i class="fas fa-rupee-sign"></i> Monthly Income</label>
+                            <input type="text" name="income" id="income" placeholder="e.g. 20000-50000">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="location"><i class="fas fa-map-marker-alt"></i> Location</label>
+                            <input type="text" name="location" id="location" placeholder="Enter city or state...">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="gender"><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select name="gender" id="gender">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Female">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="height"><i class="fas fa-ruler-vertical"></i> Height (cm)</label>
+                            <input type="text" name="height" id="height" placeholder="e.g. 150-180">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="education"><i class="fas fa-graduation-cap"></i> Education</label>
+                            <input type="text" name="education" id="education" placeholder="e.g. Bachelor's, Master's">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="age"><i class="fas fa-birthday-cake"></i> Age Range</label>
+                            <input type="text" name="age" id="age" placeholder="e.g. 21-30">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="profession"><i class="fas fa-briefcase"></i> Profession</label>
+                            <input type="text" name="profession" id="profession"
+                                placeholder="e.g. Engineer, Doctor, Teacher">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="religion"><i class="fas fa-pray"></i> Religion</label>
+                            <input type="text" name="religion" id="religion"
+                                placeholder="e.g. Hindu, Muslim, Christian">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="caste"><i class="fas fa-user"></i> Caste</label>
+                            <input type="text" name="caste" id="caste" placeholder="">
+                        </div>
                     </div>
 
-                    <div class="filter-group">
-                        <label for="income">Income</label>
-                        <select id="income">
-                            <option value="">Any</option>
-                            <option value="0-30k">$0 - $30,000</option>
-                            <option value="30k-60k">$30,001 - $60,000</option>
-                            <option value="60k-100k">$60,001 - $100,000</option>
-                            <option value="100k+">$100,000+</option>
-                        </select>
+                    <div class="filter-buttons">
+                        <button type="reset" class="reset"><i class="fas fa-undo"></i> Reset Filters</button>
+                        <button type="submit" name="apply-filter" class="apply"><i class="fas fa-search"></i> Apply
+                            Filters</button>
                     </div>
-
-                    <div class="filter-group">
-                        <label for="location">Location</label>
-                        <input type="text" id="location" placeholder="Enter location...">
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender">
-                            <option value="">Any</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="height">Height (cm)</label>
-                        <select id="height">
-                            <option value="">Any</option>
-                            <option value="150-160">150 - 160 cm</option>
-                            <option value="160-170">160 - 170 cm</option>
-                            <option value="170-180">170 - 180 cm</option>
-                            <option value="180+">180+ cm</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="education">Education</label>
-                        <select id="education">
-                            <option value="">Any</option>
-                            <option value="highschool">High School</option>
-                            <option value="bachelor">Bachelor's Degree</option>
-                            <option value="master">Master's Degree</option>
-                            <option value="phd">PhD</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="age">Age Range</label>
-                        <select id="age">
-                            <option value="">Any</option>
-                            <option value="18-25">18 - 25</option>
-                            <option value="26-35">26 - 35</option>
-                            <option value="36-45">36 - 45</option>
-                            <option value="46+">46+</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="filter-buttons">
-                    <button class="reset">Reset Filters</button>
-                    <button class="apply">Apply Filters</button>
-                </div>
+                </form>
             </div>
 
             <div class="results-container container">
                 <div class="results-header">
-                    <div class="results-count">Showing <?php echo count($result); ?> results</div>
-                    <!-- <select class="sort-select">
-                        <option>Sort by: Recommended</option>
-                        <option>Sort by: Newest</option>
-                        <option>Sort by: Age (Low to High)</option>
-                        <option>Sort by: Age (High to Low)</option>
-                    </select> -->
+                    <div class="results-count">
+                    </div>
                 </div>
 
-                <div class="user-cards">
-                    <!-- User Card 1 -->
-                    <?php if ($result):
-                        foreach ($result as $data): ?>
-                            <div class="user-card">
-                                <div class="user-image">
-                                    <img src="uploads/<?php echo $data['image']; ?>" alt="User Photo">
-                                </div>
-                                <div class="user-info">
-                                    <h3 class="user-name"><?php echo $data['full_name']; ?></h3>
-                                    <div class="user-details">
-                                        <div class="user-detail"><i class="fas fa-birthday-cake"></i>
-                                            <?php echo $data['age']; ?> years</div>
-                                        <div class="user-detail"><i class="fas fa-ruler-vertical"></i>
-                                            <?php echo $data['height']; ?> cm</div>
-                                        <div class="user-detail"><i class="fas fa-language"></i>
-                                            <?php echo $data['motherTongue']; ?></div>
-                                        <div class="user-detail"><i
-                                                class="fas fa-map-marker-alt"></i><?php echo $data['location']; ?></div>
-                                    </div>
-                                    <!-- Replace this section in your search.php file -->
-                                    <div class="match-actions">
-                                        <button class="btn btn-primary openMessagePopup"
-                                            data-id="<?php echo $data['user_id']; ?>"
-                                            data-name="<?php echo htmlspecialchars($data['full_name']); ?>"
-                                            data-image="<?php echo $data['image']; ?>">
-                                            Message
-                                        </button>
-
-                                        <button class="btn btn-secondary view-profile"
-                                            data-id="<?php echo $data['user_id']; ?>">
-                                            View Profile
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach;
-                    else: ?>
-                        <h2>No search result found! <br> <?php echo $searchQuery; ?></h2>
-                    <?php endif; ?>
-
-
+                <div class="user-cards" id="results">
+                    <div class="loading">Loading...</div>
                 </div>
+
+                <!-- Pagination -->
+                <div id="pagination"></div>
+
                 <!-- Message Modal -->
                 <div class="modal fade" id="messageModal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <img id="modalUserImage" src="uploads/default.png" class="chat-user-img">
+                                <img id="modalUserImage" class="chat-user-img">
                                 <h5 id="modalUserName" class="modal-title"></h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
@@ -735,43 +739,78 @@ if (isset($_POST["search"])) {
         <?php include("include/footer.php"); ?>
     </footer>
 
-    <script>
-        // Toggle advanced filters
-        document.getElementById('toggleFilters').addEventListener('click', function () {
-            document.getElementById('filtersContainer').classList.toggle('active');
-        });
-
-        // Apply filters button
-        document.querySelector('.filter-buttons .apply').addEventListener('click', function () {
-            alert('Filters applied!');
-            document.getElementById('filtersContainer').classList.remove('active');
-        });
-
-        // Reset filters button
-        document.querySelector('.filter-buttons .reset').addEventListener('click', function () {
-            const selects = document.querySelectorAll('.filters-container select');
-            const inputs = document.querySelectorAll('.filters-container input');
-
-            selects.forEach(select => {
-                select.selectedIndex = 0;
-            });
-
-            inputs.forEach(input => {
-                if (input.type !== 'button') {
-                    input.value = '';
-                }
-            });
-        });
-    </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         $(document).ready(function () {
-
             let chatInterval;
             let lastMessageId = 0;
 
-            // Message Modal
+            // --- Advanced Filters Toggle ---
+            $('#toggleFilters').on('click', function () {
+                const filtersContainer = $('#filtersContainer');
+                filtersContainer.toggleClass('active');
+                if (filtersContainer.hasClass('active')) {
+                    $(this).html('<i class="fas fa-times"></i> Hide Filters');
+                } else {
+                    $(this).html('<i class="fas fa-filter"></i> Advanced Filters');
+                }
+            });
+
+            // --- Search and Filtering Logic ---
+            function loadResults(page) {
+                let searchData = $("#searchForm").serialize();
+                let filterData = $("#filterForm").serialize();
+                let requestData = searchData + "&" + filterData + "&page=" + page;
+
+                $("#results").html('<div class="loading" style="text-align: center; padding: 50px; grid-column: 1 / -1;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Loading...</p></div>');
+
+                $.ajax({
+                    url: "config/search_action.php",
+                    type: "GET",
+                    data: requestData,
+                    dataType: "json",
+                    success: function (response) {
+                        if (response && response.html) {
+                            $("#results").html(response.html);
+                            $("#pagination").html(response.pagination);
+                            $(".results-count").text(response.totalResults + ' profiles found');
+                        } else {
+                            $("#results").html('<div class="no-results">Error: Invalid response from server.</div>');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("AJAX Error:", status, error);
+                        $("#results").html('<div class="no-results" style="text-align: center; padding: 50px; grid-column: 1 / -1;"><h3>An error occurred</h3><p>Could not load results. Please try again.</p></div>');
+                    }
+                });
+            }
+
+            // Initial load
+            loadResults(1);
+
+            // Form submissions
+            $("#searchForm, #filterForm").on("submit", function (e) {
+                e.preventDefault();
+                loadResults(1);
+            });
+
+            // Reset filters
+            $("#filterForm").on("reset", function () {
+                setTimeout(() => loadResults(1), 100);
+            });
+
+            // Pagination clicks (using event delegation)
+            $(document).on("click", "#pagination a", function (e) {
+                e.preventDefault();
+                let page = $(this).data("page");
+                if (page) {
+                    loadResults(page);
+                }
+            });
+
+            // --- Message Modal Logic (using event delegation) ---
             $(document).on("click", ".openMessagePopup", function () {
                 let userId = $(this).data("id");
                 let userName = $(this).data("name");
@@ -787,81 +826,61 @@ if (isset($_POST["search"])) {
                 clearInterval(chatInterval);
                 chatInterval = setInterval(() => { loadChatModal(userId); }, 3000);
 
-                // Show modal using Bootstrap API
                 let messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
                 messageModal.show();
 
-                // Send message
                 $("#modalSendMessage").off("click").on("click", function () {
                     let msg = $("#modalChatMessage").val().trim();
                     if (msg !== "") {
                         $.post("config/sendMessage.php", { id: userId, message: msg }, function (res) {
                             if (res.trim() === "success") {
                                 $("#modalChatMessage").val("");
-                                loadChatModal(userId);
+                                loadChatModal(userId, true); // Force scroll to bottom
                             }
                         });
                     }
                 });
-
-                // Enter key
-                $("#modalChatMessage").off("keydown").on("keydown", function (e) {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        $("#modalSendMessage").click();
-                    }
-                });
             });
 
-            // Load chat messages
-            function loadChatModal(userId) {
+            function loadChatModal(userId, forceScroll = false) {
                 $.post("config/getChat.php", { id: userId, last_id: lastMessageId }, function (data) {
                     if (data.trim() !== "") {
                         $("#chatMessages").append(data);
-                        $("#chatMessages").scrollTop($("#chatMessages")[0].scrollHeight);
-                        lastMessageId = $("#chatMessages .message").last().data("id");
+                        lastMessageId = $("#chatMessages .message").last().data("id") || 0;
+                        if (forceScroll) {
+                            $("#chatMessages").scrollTop($("#chatMessages")[0].scrollHeight);
+                        }
                     }
                 });
             }
 
-        });
+            // --- View Profile Modal Logic (using event delegation) ---
+            const profileModal = $("#profileModal");
 
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const modal = document.getElementById("profileModal");
-            const closeBtn = document.querySelector(".close");
-            const profileData = document.getElementById("profileData");
+            $(document).on("click", ".view-profile", function () {
+                let userId = $(this).data("id");
+                let profileDataContainer = $("#profileData");
 
-            // Handle view profile click
-            document.querySelectorAll(".view-profile").forEach(btn => {
-                btn.addEventListener("click", function () {
-                    let userId = this.getAttribute("data-id");
-                    profileData.innerHTML = "Loading...";
+                profileDataContainer.html('<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Loading Profile...</p></div>');
+                profileModal.show();
 
-                    fetch("config/getProfile.php?id=" + userId)
-                        .then(res => res.text())
-                        .then(data => {
-                            profileData.innerHTML = data;
-                            modal.style.display = "block";
-                        });
-                });
+                $.get("config/getProfile.php?id=" + userId)
+                    .done(function (data) {
+                        profileDataContainer.html(data);
+                    })
+                    .fail(function () {
+                        profileDataContainer.html('<div style="text-align: center; padding: 40px; color: #dc3545;"><i class="fas fa-exclamation-triangle fa-2x"></i><p>Error loading profile. Please try again.</p></div>');
+                    });
             });
 
-            // Close modal
-            closeBtn.onclick = function () {
-                modal.style.display = "none";
-            }
-            window.onclick = function (e) {
-                if (e.target == modal) {
-                    modal.style.display = "none";
+            // Close the profile modal
+            profileModal.on('click', function (e) {
+                if ($(e.target).is(profileModal) || $(e.target).hasClass('close')) {
+                    profileModal.hide();
                 }
-            }
+            });
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 </body>
 
 </html>
