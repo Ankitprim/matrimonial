@@ -15,7 +15,7 @@ class Database
             $conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->user, $this->password);
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (PDOException $e) {
-            echo "Connection Error: " . $e->getMessage();
+            error_log("Connection Error: " . $e->getMessage());
         }
 
         return $conn;
@@ -219,7 +219,7 @@ class query extends Database
         $stmt->execute();
         return $stmt;
     }
-    
+
     public function blockUser($blocker_id, $blocked_id)
     {
         try {
@@ -324,7 +324,7 @@ class query extends Database
     {
 
         $sql = "SELECT u.user_id,u.gender, u.full_name, p.image, p.height, p.religion, p.caste, 
-               p.motherTongue, p.education, p.profession, p.location, 
+               p.motherTongue, p.education,p.income, p.profession, p.location, 
                p.aboutMe, p.lookingFor
         FROM users u
         JOIN profiles p ON u.user_id = p.user_id
@@ -335,162 +335,273 @@ class query extends Database
         return $profile;
     }
 
-    public function getSearch($keyword)
+     public function getSearch($keyword, $limit = 8, $offset = 0)
     {
         try {
             $sql = "SELECT 
-        u.user_id,
-        u.full_name,
-        u.age,
-        p.image,
-        p.height,
-        p.motherTongue,
-        p.location FROM users u LEFT JOIN profiles p ON u.user_id = p.user_id
-        WHERE u.user_id = :keyword OR u.full_name LIKE :search_name;
-        ";
+                u.user_id, u.full_name, u.age, p.image, p.height, p.motherTongue, p.location 
+                FROM users u 
+                LEFT JOIN profiles p ON u.user_id = p.user_id
+                WHERE u.user_id LIKE :keyword OR u.full_name LIKE :search_name 
+                LIMIT :limit OFFSET :offset";
 
             $stmt = $this->connect()->prepare($sql);
-            $stmt->bindValue(':keyword', $keyword, PDO::PARAM_INT);
+            
+            // **CRITICAL FIX**: Bind the keyword as a string (PDO::PARAM_STR) to handle both numbers and names
+            $stmt->bindValue(':keyword', $keyword, PDO::PARAM_STR);
             $stmt->bindValue(':search_name', "%$keyword%", PDO::PARAM_STR);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return $result;
-        } catch (PDOException $e) {
-            echo "Search Error", $e->getMessage();
-            return [];
-        }
-    }
-     public function advancedSearch($motherTongue, $income, $location, $gender, $height, $education, $age, $limit = 8, $offset = 0) {
-        try {
-            $sql = "SELECT * FROM users ";
-            $params = [];
-            $conditions = [];
-
-            // Build dynamic conditions
-            if (!empty($motherTongue)) {
-                $conditions[] = "motherTongue LIKE :motherTongue";
-                $params[':motherTongue'] = '%' . $motherTongue . '%';
-            }
-
-            if (!empty($location)) {
-                $conditions[] = "(location LIKE :location OR city LIKE :location OR state LIKE :location)";
-                $params[':location'] = '%' . $location . '%';
-            }
-
-            if (!empty($gender)) {
-                $conditions[] = "gender = :gender";
-                $params[':gender'] = $gender;
-            }
-
-            if (!empty($education)) {
-                $conditions[] = "education LIKE :education";
-                $params[':education'] = '%' . $education . '%';
-            }
-
-
-            // Handle age range
-            if (!empty($age)) {
-                if (strpos($age, '-') !== false) {
-                    $ageRange = explode('-', $age);
-                    if (count($ageRange) == 2) {
-                        $minAge = trim($ageRange[0]);
-                        $maxAge = trim($ageRange[1]);
-                        $conditions[] = "age BETWEEN :minAge AND :maxAge";
-                        $params[':minAge'] = $minAge;
-                        $params[':maxAge'] = $maxAge;
-                    }
-                } else {
-                    $conditions[] = "age = :age";
-                    $params[':age'] = $age;
-                }
-            }
-
-            // Handle height range
-            if (!empty($height)) {
-                if (strpos($height, '-') !== false) {
-                    $heightRange = explode('-', $height);
-                    if (count($heightRange) == 2) {
-                        $minHeight = trim($heightRange[0]);
-                        $maxHeight = trim($heightRange[1]);
-                        $conditions[] = "height BETWEEN :minHeight AND :maxHeight";
-                        $params[':minHeight'] = $minHeight;
-                        $params[':maxHeight'] = $maxHeight;
-                    }
-                } else {
-                    $conditions[] = "height = :height";
-                    $params[':height'] = $height;
-                }
-            }
-
-            // Handle income range
-            if (!empty($income)) {
-                if (strpos($income, '-') !== false) {
-                    $incomeRange = explode('-', $income);
-                    if (count($incomeRange) == 2) {
-                        $minIncome = trim($incomeRange[0]);
-                        $maxIncome = trim($incomeRange[1]);
-                        $conditions[] = "income BETWEEN :minIncome AND :maxIncome";
-                        $params[':minIncome'] = $minIncome;
-                        $params[':maxIncome'] = $maxIncome;
-                    }
-                } else {
-                    $conditions[] = "income >= :income";
-                    $params[':income'] = $income;
-                }
-            }
-
-            // Add conditions to SQL
-            if (!empty($conditions)) {
-                $sql .= " AND " . implode(" AND ", $conditions);
-            }
-
-            $sql .= " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
-
-            $stmt = $this->connect()->prepare($sql);
-            
-            // Bind all parameters
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             
             $stmt->execute();
-            
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Advanced search error: " . $e->getMessage());
+            // **CRITICAL FIX**: Log error and return empty array to prevent breaking JSON response
+            error_log("getSearch Error: " . $e->getMessage());
             return [];
         }
     }
-    
+
     // Get total count for search results
-    public function getSearchCount($searchQuery) {
+     public function getSearchCount($searchQuery)
+    {
         try {
+            // **FIX**: Build a more precise query to handle numbers (user_id) and text separately.
             $sql = "SELECT COUNT(*) as total FROM users WHERE 
-                    (full_name LIKE :search OR 
-                     user_id LIKE :search OR 
-                     email LIKE :search OR 
-                     phone LIKE :search) 
-                    AND status = 'active'";
+                    full_name LIKE :search_str OR 
+                    email LIKE :search_str OR 
+                    phone LIKE :search_str";
             
+            $params = [':search_str' => '%' . $searchQuery . '%'];
+            
+            if (is_numeric($searchQuery)) {
+                $sql .= " OR user_id = :search_id";
+                $params[':search_id'] = (int)$searchQuery;
+            }
+
             $stmt = $this->connect()->prepare($sql);
-            $searchParam = '%' . $searchQuery . '%';
-            $stmt->bindParam(':search', $searchParam, PDO::PARAM_STR);
-            $stmt->execute();
             
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            
+            $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['total'];
+            return $result['total'] ?? 0;
         } catch (PDOException $e) {
             error_log("Search count error: " . $e->getMessage());
             return 0;
         }
     }
+    public function advancedSearch($filters = array(), $limit = 10, $offset = 0)
+    {
+        $sql = "SELECT u.*, p.* FROM users u JOIN profiles p ON u.user_id = p.user_id WHERE 1=1";
+        $params = array();
+        $param_types = array();
 
+        // Build dynamic WHERE clause
+        foreach ($filters as $key => $value) {
+            if (empty($value))
+                continue;
+
+            switch ($key) {
+                case 'searchQuery':
+                    $sql .= " AND (u.full_name LIKE :searchQuery OR p.profession LIKE :searchQuery OR p.education LIKE :searchQuery)";
+                    $params[':searchQuery'] = "%" . $value . "%";
+                    $param_types[':searchQuery'] = PDO::PARAM_STR;
+                    break;
+                case 'motherTongue':
+                    $sql .= " AND p.motherTongue LIKE :motherTongue";
+                    $params[':motherTongue'] = "%" . $value . "%";
+                    $param_types[':motherTongue'] = PDO::PARAM_STR;
+                    break;
+                case 'income':
+                    $sql .= " AND p.income = :income";
+                    $params[':income'] = $value;
+                    $param_types[':income'] = PDO::PARAM_STR;
+                    break;
+                case 'location':
+                    $sql .= " AND p.location LIKE :location";
+                    $params[':location'] = "%" . $value . "%";
+                    $param_types[':location'] = PDO::PARAM_STR;
+                    break;
+                case 'gender':
+                    $sql .= " AND u.gender = :gender";
+                    $params[':gender'] = $value;
+                    $param_types[':gender'] = PDO::PARAM_STR;
+                    break;
+                case 'height':
+                    if (strpos($value, '-') !== false) {
+                        list($min, $max) = explode('-', $value);
+                        $sql .= " AND p.height BETWEEN :min_height AND :max_height";
+                        $params[':min_height'] = (int) trim($min);
+                        $params[':max_height'] = (int) trim($max);
+                        $param_types[':min_height'] = PDO::PARAM_INT;
+                        $param_types[':max_height'] = PDO::PARAM_INT;
+                    } else if (is_numeric($value)) {
+                        $sql .= " AND p.height = :height";
+                        $params[':height'] = (int) $value;
+                        $param_types[':height'] = PDO::PARAM_INT;
+                    }
+                    break;
+                case 'education':
+                    $sql .= " AND p.education LIKE :education";
+                    $params[':education'] = "%" . $value . "%";
+                    $param_types[':education'] = PDO::PARAM_STR;
+                    break;
+                case 'age':
+                    if (strpos($value, '-') !== false) {
+                        list($min, $max) = explode('-', $value);
+                        $sql .= " AND u.age BETWEEN :min_age AND :max_age";
+                        $params[':min_age'] = (int) trim($min);
+                        $params[':max_age'] = (int) trim($max);
+                        $param_types[':min_age'] = PDO::PARAM_INT;
+                        $param_types[':max_age'] = PDO::PARAM_INT;
+                    } else if (is_numeric($value)) {
+                        $sql .= " AND u.age = :age";
+                        $params[':age'] = (int) $value;
+                        $param_types[':age'] = PDO::PARAM_INT;
+                    }
+                    break;
+                case 'profession':
+                    $sql .= " AND p.profession LIKE :profession";
+                    $params[':profession'] = "%" . $value . "%";
+                    $param_types[':profession'] = PDO::PARAM_STR;
+                    break;
+                case 'religion':
+                    $sql .= " AND p.religion LIKE :religion";
+                    $params[':religion'] = "%" . $value . "%";
+                    $param_types[':religion'] = PDO::PARAM_STR;
+                    break;
+                case 'caste':
+                    $sql .= " AND p.caste LIKE :caste";
+                    $params[':caste'] = "%" . $value . "%";
+                    $param_types[':caste'] = PDO::PARAM_STR;
+                    break;
+            }
+        }
+
+        $sql .= " ORDER BY u.created_at DESC LIMIT :limit OFFSET :offset";
+        $params[':limit'] = (int) $limit;
+        $params[':offset'] = (int) $offset;
+        $param_types[':limit'] = PDO::PARAM_INT;
+        $param_types[':offset'] = PDO::PARAM_INT;
+
+        try {
+            $stmt = $this->connect()->prepare($sql);
+            foreach ($params as $param => $val) {
+                $stmt->bindValue($param, $val, $param_types[$param]);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Advanced Search Error: " . $e->getMessage());
+            return array();
+        }
+    }
+
+    public function getAdvancedSearchCount($filters = array())
+    {
+        $sql = "SELECT COUNT(*) as total FROM users u JOIN profiles p ON u.user_id = p.user_id WHERE 1=1";
+        $params = array();
+        $param_types = array();
+
+        // Build dynamic WHERE clause (must match advancedSearch)
+        foreach ($filters as $key => $value) {
+            if (empty($value))
+                continue;
+
+            switch ($key) {
+                case 'searchQuery':
+                    $sql .= " AND (u.full_name LIKE :searchQuery OR p.profession LIKE :searchQuery OR p.education LIKE :searchQuery)";
+                    $params[':searchQuery'] = "%" . $value . "%";
+                    $param_types[':searchQuery'] = PDO::PARAM_STR;
+                    break;
+                case 'motherTongue':
+                    $sql .= " AND p.motherTongue LIKE :motherTongue";
+                    $params[':motherTongue'] = "%" . $value . "%";
+                    $param_types[':motherTongue'] = PDO::PARAM_STR;
+                    break;
+                case 'income':
+                    $sql .= " AND p.income = :income";
+                    $params[':income'] = $value;
+                    $param_types[':income'] = PDO::PARAM_STR;
+                    break;
+                case 'location':
+                    $sql .= " AND p.location LIKE :location";
+                    $params[':location'] = "%" . $value . "%";
+                    $param_types[':location'] = PDO::PARAM_STR;
+                    break;
+                case 'gender':
+                    $sql .= " AND u.gender = :gender";
+                    $params[':gender'] = $value;
+                    $param_types[':gender'] = PDO::PARAM_STR;
+                    break;
+                case 'height':
+                    if (strpos($value, '-') !== false) {
+                        list($min, $max) = explode('-', $value);
+                        $sql .= " AND p.height BETWEEN :min_height AND :max_height";
+                        $params[':min_height'] = (int) trim($min);
+                        $params[':max_height'] = (int) trim($max);
+                        $param_types[':min_height'] = PDO::PARAM_INT;
+                        $param_types[':max_height'] = PDO::PARAM_INT;
+                    } else if (is_numeric($value)) {
+                        $sql .= " AND p.height = :height";
+                        $params[':height'] = (int) $value;
+                        $param_types[':height'] = PDO::PARAM_INT;
+                    }
+                    break;
+                case 'education':
+                    $sql .= " AND p.education LIKE :education";
+                    $params[':education'] = "%" . $value . "%";
+                    $param_types[':education'] = PDO::PARAM_STR;
+                    break;
+                case 'age':
+                    if (strpos($value, '-') !== false) {
+                        list($min, $max) = explode('-', $value);
+                        $sql .= " AND u.age BETWEEN :min_age AND :max_age";
+                        $params[':min_age'] = (int) trim($min);
+                        $params[':max_age'] = (int) trim($max);
+                        $param_types[':min_age'] = PDO::PARAM_INT;
+                        $param_types[':max_age'] = PDO::PARAM_INT;
+                    } else if (is_numeric($value)) {
+                        $sql .= " AND u.age = :age";
+                        $params[':age'] = (int) $value;
+                        $param_types[':age'] = PDO::PARAM_INT;
+                    }
+                    break;
+                case 'profession':
+                    $sql .= " AND p.profession LIKE :profession";
+                    $params[':profession'] = "%" . $value . "%";
+                    $param_types[':profession'] = PDO::PARAM_STR;
+                    break;
+                case 'religion':
+                    $sql .= " AND p.religion LIKE :religion";
+                    $params[':religion'] = "%" . $value . "%";
+                    $param_types[':religion'] = PDO::PARAM_STR;
+                    break;
+                case 'caste':
+                    $sql .= " AND p.caste LIKE :caste";
+                    $params[':caste'] = "%" . $value . "%";
+                    $param_types[':caste'] = PDO::PARAM_STR;
+                    break;
+            }
+        }
+
+        try {
+            $stmt = $this->connect()->prepare($sql);
+            foreach ($params as $param => $val) {
+                $stmt->bindValue($param, $val, $param_types[$param]);
+            }
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int) $result['total'];
+        } catch (PDOException $e) {
+            error_log("Advanced Search Count Error: " . $e->getMessage());
+            return 0;
+        }
+    }
 
 }
-
-
 
 ?>
