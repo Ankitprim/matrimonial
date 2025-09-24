@@ -17,8 +17,7 @@ $user_name = $_SESSION["user_name"];
 
 $obj = new query;
 $conditionArr = array("user_id" => $user_id, "full_name" => $user_name);
-$stmt = $obj->getData("users", "*", $conditionArr);
-$data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$data = $obj->getData("users", "*", $conditionArr);
 $eamil = $data[0]['email'];
 $phone = $data[0]['phone'];
 $age = $data[0]['age'];
@@ -27,8 +26,7 @@ $gender = $data[0]['gender'];
 
 // from profiles table
 $conditionArr = array("user_id" => $user_id);
-$query = $obj->getData("profiles", "*", $conditionArr);
-$data = $query->fetchAll(PDO::FETCH_ASSOC);
+$data = $obj->getData("profiles", "*", $conditionArr);
 
 $image = $data[0]['image'];
 $height = $data[0]['height'];
@@ -44,8 +42,7 @@ $looknigFor = $data[0]['lookingFor'];
 
 
 // from prefrences table
-$query = $obj->getData('preferences', '*', $conditionArr);
-$data = $query->fetchAll(PDO::FETCH_ASSOC);
+$data = $obj->getData('preferences', '*', $conditionArr);
 $ageRange = $data[0]['ageRange'];
 $heightRange = $data[0]['heightRange'];
 $religionPrefer = $data[0]['religionPrefer'];
@@ -70,8 +67,7 @@ foreach ($match as $key) {
 
 // message 
 $conditionArr = ['receiver_id' => $user_id];
-$stmt = $obj->getData("messages", "*", $conditionArr);
-$msgs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$msgs = $obj->getData("messages", "*", $conditionArr);
 
 $messages_profiles = $obj->getUserConversations($user_id);
 // var_dump($messages_profiles  );
@@ -81,14 +77,12 @@ $msgCount = 0;
 foreach ($msgs as $msg) {
     $sender_id = $msg['sender_id'];
     $conditionArr = ['user_id' => $sender_id];
-    $stmt = $obj->getData("users", "full_name", $conditionArr);
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $users = $obj->getData("users", "full_name", $conditionArr);
     // var_dump($users);
     // echo $users['full_name'];
 
     $conditionArr = ['user_id' => $sender_id];
-    $stmt = $obj->getData("profiles ", "image", $conditionArr);
-    $profiles = $stmt->fetch(PDO::FETCH_ASSOC);
+    $profiles = $obj->getData("profiles ", "image", $conditionArr);
     // echo $profiles['image'];
 
     // var_dump($users);
@@ -805,6 +799,9 @@ foreach ($msgs as $msg) {
             .sidebar-overlay.active {
                 display: block;
             }
+            .stats-grid{
+                    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
         }
     </style>
 </head>
@@ -891,7 +888,7 @@ foreach ($msgs as $msg) {
                         <div class="stat-card">
                             <i class="fa-solid fa-heart fa-bounce"></i>
                             <h3><?php echo $matchCount; ?></h3>
-                            <p>New Matches</p>
+                            <p>Total Matches</p>
                         </div>
 
                         <div class="stat-card">
@@ -912,7 +909,7 @@ foreach ($msgs as $msg) {
                             <p>Profile Completion</p>
                         </div>
                     </div>
-
+<!-- 
                     <div class="recent-activities">
                         <h3>Recent Activities</h3>
 
@@ -959,7 +956,7 @@ foreach ($msgs as $msg) {
                                 <small>2 days ago</small>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Profile Section -->
@@ -1139,7 +1136,7 @@ foreach ($msgs as $msg) {
                         </div>
                         <div class="form-group">
                             <label for="incomePrefer">Income Preferences (per month in INR)</label>
-                            <input type="number" id="incomePrefer" name="incomePrefer"
+                            <input type="text" id="incomePrefer" name="incomePrefer"
                                 value="<?php echo $incomePrefer; ?>" placeholder="25000">
                         </div>
 
@@ -1490,6 +1487,7 @@ foreach ($msgs as $msg) {
         });
 
     </script>
+    
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const modal = document.getElementById("profileModal");
