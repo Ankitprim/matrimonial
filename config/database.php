@@ -37,7 +37,8 @@ class query extends Database
             $stmt->bindValue(":$key", $value);
         }
         $stmt->execute();
-        return $stmt;
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $result;
     }
 
     public function insertData($table, $data)
