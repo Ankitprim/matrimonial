@@ -4,11 +4,9 @@ $err = "";
 if (isset($_POST['submit'])) {
     $email = $_POST['email'];
     $password = $_POST['password'];
-
     $query = new query();
     $conditionArr = ['email' => $email];
-    $stmt = $query->getData('users', '*', $conditionArr);
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $users = $query->getData('users', '*', $conditionArr);
 
     $found = false;
     foreach ($users as $user) {
@@ -21,6 +19,15 @@ if (isset($_POST['submit'])) {
         }
     }
 
+    $admin = $query->getData('admin', '*', $conditionArr);
+    foreach ($admin as $admn) {
+        if ($admn['email'] === $email && password_verify($password, $admn['password'])) {
+                session_start();
+                $_SESSION['admin_id'] = $admn['admin_id'];
+                header('Location: ../admin.php');
+                exit();
+        }
+    }
     if (!$found) {
         // echo "<script>alert('Invalid email or password');</script>";
         $err = "Invalid email or password.";
@@ -28,7 +35,6 @@ if (isset($_POST['submit'])) {
 
 
 }
-
 
 
 ?>
@@ -110,7 +116,6 @@ if (isset($_POST['submit'])) {
             font-weight: 500;
             color: #555;
         }
-
         .form-group input {
             width: 100%;
             padding: 14px;
@@ -278,7 +283,8 @@ if (isset($_POST['submit'])) {
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required >
+
                     </div>
 
                     <div class="remember-forgot">
